@@ -18,7 +18,7 @@ export default function FeedbackModal({ onClose }) {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [message, setMessage] = useState('');
-  const [state, setState] = useState('idle'); // idle | sending | sent | error
+  const [state, setState] = useState('idle'); // idle | sending | sent | error | blocked
 
   const emailOk = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const canSend = message.trim().length > 0 && emailOk && state !== 'sending';
@@ -30,8 +30,10 @@ export default function FeedbackModal({ onClose }) {
     try {
       await submitFeedback({ kind, name, email, message, uid: user?.uid && !user?.demo ? user.uid : '' });
       setState('sent');
-    } catch {
-      setState('error');
+    } catch (err) {
+      console.error('Feedback could not be sent:', err);
+      // "permission-denied" means the database rules don't allow feedback messages yet.
+      setState(err?.code === 'permission-denied' ? 'blocked' : 'error');
     }
   }
 
@@ -76,7 +78,8 @@ export default function FeedbackModal({ onClose }) {
           </div>
         </div>
         {!emailOk && <p className="form-error">That email doesn’t look right.</p>}
-        {state === 'error' && <p className="form-error">Couldn’t send right now. Please try again in a moment.</p>}
+        {state === 'error' && <p className="form-error">Couldn’t send right now. Please check your connection and try again.</p>}
+        {state === 'blocked' && <p className="form-error">Messages can’t be received yet — the site’s database isn’t set up for feedback. Please try again later.</p>}
         <div className="fb-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
           <button type="submit" className="btn btn-primary" disabled={!canSend}>{state === 'sending' ? 'Sending…' : 'Send message'}</button>
