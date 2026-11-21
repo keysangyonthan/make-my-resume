@@ -5,6 +5,8 @@ import { deleteResume, listResumes, newId, saveResume } from '../lib/store';
 import { blankResume, sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
+import DocThumb from '../components/DocThumb';
+import { importResumeFile } from '../lib/importResume';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
@@ -49,6 +51,35 @@ export default function Dashboard() {
     return r;
   }, [user.name]);
   const stripRef = useRef(null);
+  const fileRef = useRef(null);
+  const [importing, setImporting] = useState(null); // null | { name } | { error }
+  const [dragOver, setDragOver] = useState(false);
+
+  // Upload a PDF / Word / text resume → editable document.
+  async function upload(file) {
+    if (!file || importing?.name) return;
+    setImporting({ name: file.name });
+    try {
+      const { html, title, warnings } = await importResumeFile(file);
+      const doc = {
+        id: newId(),
+        kind: 'document',
+        title,
+        html,
+        font: 'sans',
+        pageSize: 'A4',
+        sourceName: file.name,
+        importNote: warnings.length
+          ? `Imported “${file.name}”. ${warnings.join(' ')}`
+          : `Imported “${file.name}”. Click anywhere on the page to edit.`,
+      };
+      await saveResume(user.uid, doc);
+      navigate(`/app/doc/${doc.id}`);
+    } catch (e) {
+      setImporting({ error: e?.message || 'Something went wrong reading that file. Please try another one.' });
+    }
+  }
+  const openPath = (r) => (r.kind === 'document' ? `/app/doc/${r.id}` : `/app/edit/${r.id}`);
   const scrollStrip = (dir) => stripRef.current?.scrollBy({ left: dir * 520, behavior: 'smooth' });
 
   async function duplicate(r) {
@@ -99,6 +130,26 @@ export default function Dashboard() {
               <div className="tpl-card-name">Blank</div>
               <div className="tpl-card-desc">Start from scratch</div>
             </button>
+            <button
+              className={`tpl-card upload ${dragOver ? 'drag' : ''}`}
+              onClick={() => fileRef.current?.click()}
+              disabled={!!creating || !!importing?.name}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files?.[0]); }}
+            >
+              <div className="tpl-card-thumb upload-thumb">
+                <span className="up-ic">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+                </span>
+                <span className="up-types">PDF · Word</span>
+              </div>
+              <div className="tpl-card-name">Upload resume</div>
+              <div className="tpl-card-desc">Edit your own file directly</div>
+            </button>
+            <input ref={fileRef} type="file" hidden
+              accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; upload(f); }} />
             {TEMPLATE_KEYS.map((k) => (
               <button key={k} className={`tpl-card ${creating === k ? 'busy' : ''}`} onClick={() => create({ template: k })} disabled={!!creating}>
                 <div className="tpl-card-thumb">
@@ -130,19 +181,21 @@ export default function Dashboard() {
             )}
             {items.map((r) => (
               <div key={r.id} className="rcard">
-                <div className="thumbwrap" onClick={() => navigate(`/app/edit/${r.id}`)}>
-                  <ResumePages resume={r} width={190} maxPages={1} gap={0} />
+                <div className="thumbwrap" onClick={() => navigate(openPath(r))}>
+                  {r.kind === 'document'
+                    ? <DocThumb html={r.html} font={r.font} width={190} />
+                    : <ResumePages resume={r} width={190} maxPages={1} gap={0} />}
                 </div>
                 <div className="meta">
-                  <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => navigate(`/app/edit/${r.id}`)}>
+                  <div style={{ minWidth: 0, cursor: 'pointer' }} onClick={() => navigate(openPath(r))}>
                     <div className="t">{r.title || 'Untitled resume'}</div>
-                    <div className="d">{TEMPLATES[r.template]?.name} · Edited {timeAgo(r.updatedAt)}</div>
+                    <div className="d">{r.kind === 'document' ? 'Uploaded document' : TEMPLATES[r.template]?.name} · Edited {timeAgo(r.updatedAt)}</div>
                   </div>
                   <button className="icon-btn" aria-label="More" onClick={(e) => { e.stopPropagation(); setConfirmDel(false); setMenu(menu === r.id ? null : r.id); }}>{Icon.dots}</button>
                 </div>
                 {menu === r.id && (
                   <div className="menu" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => navigate(`/app/edit/${r.id}`)}>Open</button>
+                    <button onClick={() => navigate(openPath(r))}>Open</button>
                     <button onClick={() => { setMenu(null); duplicate(r); }}>Duplicate</button>
                     {confirmDel ? (
                       <button className="danger" onClick={() => { setMenu(null); remove(r); }}>Yes, delete forever</button>
@@ -156,6 +209,30 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {importing && (
+        <div className="leave-overlay" role="alertdialog" aria-live="assertive">
+          <div className="leave-card">
+            {importing.name ? (
+              <>
+                <div className="spinner" />
+                <h3>Reading your resume…</h3>
+                <p>Turning “{importing.name}” into an editable document. This takes a few seconds.</p>
+              </>
+            ) : (
+              <>
+                <div className="leave-warn">!</div>
+                <h3>Couldn’t open that file</h3>
+                <p>{importing.error}</p>
+                <div className="leave-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setImporting(null)}>Close</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => { setImporting(null); fileRef.current?.click(); }}>Choose another file</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

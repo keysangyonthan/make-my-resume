@@ -3,6 +3,18 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.14',
+    date: '2026-11-21',
+    title: 'Upload your own resume',
+    tag: 'New',
+    items: [
+      'Already have a resume? Upload a PDF or Word file from “Start a new resume” (or drag it onto the Upload tile).',
+      'Edit it directly on the page, like a document — headings, bold, bullet lists, links and alignment, with undo/redo.',
+      'Choose a Sans or Serif font and A4 or US Letter, see where pages break, and export a fresh PDF.',
+      'Works on phones, so you can make quick fixes on the go. Saving works just like the form editor.',
+    ],
+  },
+  {
     version: '1.13',
     date: '2026-11-21',
     title: 'Say hello',

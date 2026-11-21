@@ -1,8 +1,11 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, Outlet, RouterProvider, createBrowserRouter, createHashRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
+// The document editor (and its text-editing library) loads only when someone opens an uploaded resume.
+const DocEditor = lazy(() => import('./pages/DocEditor'));
 import Changelog from './pages/Changelog';
 import UpdateBanner from './components/UpdateBanner';
 import { VersionProvider } from './lib/version';
@@ -31,6 +34,7 @@ const routes = [
       { path: '/changelog', element: <Changelog /> },
       { path: '/app', element: <Protected><Dashboard /></Protected> },
       { path: '/app/edit/:id', element: <Protected><Editor /></Protected> },
+      { path: '/app/doc/:id', element: <Protected><Suspense fallback={<div className="center-screen"><div className="spinner" /></div>}><DocEditor /></Suspense></Protected> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

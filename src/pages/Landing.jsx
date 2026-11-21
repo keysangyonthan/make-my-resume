@@ -277,6 +277,7 @@ export default function Landing() {
         <div className="ap-head ap-reveal"><h2>Questions? Answers.</h2></div>
         <div className="ap-faq ap-reveal">
           <details><summary>Is it really free?</summary><p>Yes. Building, saving and exporting resumes is free, with no watermarks and no download limits.</p></details>
+          <details><summary>Can I upload the resume I already have?</summary><p>Yes. Upload a PDF or Word file and edit it directly on the page, like a document — fix a typo, add a new job, then export a fresh PDF. Works on your phone too.</p></details>
           <details><summary>Can my resume be more than one page?</summary><p>Yes. Pages break cleanly on their own. To fit everything on one page, open “Customise look” and lower the font size or choose Compact spacing.</p></details>
           <details><summary>Will applicant tracking systems read my PDF?</summary><p>Yes. The PDF contains real text, not an image, so ATS software and recruiters can search and copy it.</p></details>
           <details><summary>Where is my data stored?</summary><p>Privately, in your account. Only you can see your resumes.</p></details>

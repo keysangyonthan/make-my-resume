@@ -63,6 +63,7 @@ export default function Editor() {
   useEffect(() => {
     getResume(user.uid, id).then((server) => {
       if (!server) return navigate('/app', { replace: true });
+      if (server.kind === 'document') return navigate(`/app/doc/${id}`, { replace: true });
       let r = server;
       let draft = null;
       try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { /* ignore */ }

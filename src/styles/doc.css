@@ -1,0 +1,79 @@
+/* ───────── Uploaded-document editor ───────── */
+.doc-editor .ebar .spacer { flex: 1; }
+
+.doc-toolbar {
+  flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--line);
+  overflow-x: auto; scrollbar-width: none; position: relative; z-index: 5;
+}
+.doc-toolbar::-webkit-scrollbar { display: none; }
+.tb { flex: none; height: 34px; min-width: 34px; padding: 0 8px; border: none; background: none; border-radius: 8px; color: #334155; font-size: 15px; display: inline-grid; place-items: center; }
+.tb:hover:not(:disabled) { background: #f1f5f9; color: var(--ink); }
+.tb.on { background: var(--brand-50); color: var(--brand-600); }
+.tb:disabled { opacity: 0.35; cursor: default; }
+.tb-sep { flex: none; width: 1px; height: 22px; background: var(--line); margin: 0 6px; }
+.tb-select { flex: none; height: 34px; border: 1px solid #e3e7ef; border-radius: 8px; padding: 0 8px; background: #fff; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.tb-seg { flex: none; margin-left: 4px; }
+.tb-seg button { height: 28px; font-size: 12.5px; }
+.tb-wrap { position: relative; flex: none; }
+.link-pop { position: fixed; z-index: 50; margin-top: 6px; display: flex; gap: 6px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; box-shadow: 0 12px 32px -8px rgba(15,23,42,0.25); }
+.link-pop input { width: 240px; height: 32px; border: 1px solid #dbe1ea; border-radius: 8px; padding: 0 10px; font-size: 13.5px; }
+.link-pop input:focus { outline: none; border-color: var(--brand); }
+
+.doc-canvas { flex: 1; overflow-y: auto; background: #e3e6ec; padding: 18px 24px 80px; cursor: text; }
+.doc-meta { display: flex; justify-content: center; margin-bottom: 14px; pointer-events: none; }
+.doc-meta span { background: rgba(15,23,42,0.72); color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.doc-sheet {
+  position: relative; width: var(--page-w); max-width: 100%; min-height: calc(var(--page-w) * 1.414); margin: 0 auto; background: #fff;
+  padding: var(--pad-y) var(--pad-x); box-shadow: 0 10px 30px -8px rgba(15,23,42,0.28); cursor: text;
+}
+.doc-sheet .ProseMirror { outline: none; min-height: 200px; }
+.doc-tip { text-align: center; color: #64748b; font-size: 12.5px; margin: 16px 0 0; }
+
+/* Dashed line where a new PDF page will start (approximate) */
+.page-guide { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed #a5b4fc; pointer-events: none; }
+.page-guide span { position: absolute; right: 8px; top: -9px; background: #eef2ff; color: #4338ca; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
+
+/* ───────── The document itself (screen + PDF) ───────── */
+.doc-content { font-size: 10.5pt; line-height: 1.45; color: #1f2937; word-wrap: break-word; }
+.font-sans .doc-content { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.font-serif .doc-content { font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-size: 11pt; }
+.doc-content > * + * { margin-top: 4pt; }
+.doc-content p { margin: 0; }
+.doc-content p + p { margin-top: 3pt; }
+.doc-content h1 { font-size: 21pt; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4pt; color: #111827; }
+.doc-content h2 { font-size: 12pt; font-weight: 700; color: #111827; margin: 12pt 0 4pt; padding-bottom: 2pt; border-bottom: 1px solid #d1d5db; }
+.doc-content h3 { font-size: 11pt; font-weight: 700; color: #111827; margin: 8pt 0 2pt; }
+.doc-content h1:first-child, .doc-content h2:first-child { margin-top: 0; }
+.doc-content ul, .doc-content ol { margin: 2pt 0 4pt; padding-left: 16pt; }
+.doc-content li { margin: 1pt 0; }
+.doc-content li p { margin: 0; }
+.doc-content a { color: #4338ca; text-decoration: underline; text-underline-offset: 2px; }
+.doc-content strong { font-weight: 700; color: #111827; }
+.doc-content hr { border: none; border-top: 1px solid #d1d5db; margin: 8pt 0; }
+.doc-content img { max-width: 100%; height: auto; }
+.doc-content table { width: 100%; border-collapse: collapse; margin: 4pt 0; table-layout: fixed; }
+.doc-content td, .doc-content th { vertical-align: top; padding: 2pt 6pt 2pt 0; text-align: left; }
+.doc-content th { font-weight: 700; }
+.doc-content td > p, .doc-content th > p { margin: 0; }
+/* Faint cell outlines while editing only, so table layouts are easy to work with */
+.doc-sheet .doc-content td, .doc-sheet .doc-content th { outline: 1px dashed #e5e7eb; outline-offset: -1px; }
+.doc-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #9ca3af; float: left; height: 0; pointer-events: none; }
+
+/* Print */
+.doc-print { color: #1f2937; }
+@media print {
+  .doc-print h1, .doc-print h2, .doc-print h3 { break-after: avoid; page-break-after: avoid; }
+  .doc-print li, .doc-print tr, .doc-print img { break-inside: avoid; page-break-inside: avoid; }
+  .doc-print a { color: inherit; }
+}
+
+/* Thumbnails on the Your resumes page */
+.doc-thumb { width: 794px; min-height: 1123px; background: #fff; padding: 60px 68px; transform-origin: 0 0; pointer-events: none; }
+
+/* Phones: full-width page, no page guides */
+@media (max-width: 860px) {
+  .doc-canvas { padding: 10px 8px 80px; }
+  .doc-sheet { width: 100%; min-height: 70vh; padding: 22px 18px; }
+  .page-guide { display: none; }
+  .doc-toolbar { padding: 6px 8px; }
+}
