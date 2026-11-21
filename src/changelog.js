@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.8',
+    date: '2026-11-21',
+    title: 'A cleaner, simpler home page',
+    tag: 'Improved',
+    items: [
+      'Redesigned landing page: big type, lots of white space, and a calm, minimal look.',
+      'Watch a live demo where the resume updates as a name is typed.',
+      'Scroll through all 10 resume styles in one row.',
+    ],
+  },
+  {
     version: '1.7',
     date: '2026-11-21',
     title: 'Now called Make My Resume',
