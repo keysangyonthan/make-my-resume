@@ -214,6 +214,13 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .wip-actions { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
 .wip-page { padding: 20px; }
 
+/* "Example content" notice at the top of the form */
+.example-banner { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: space-between; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: var(--radius); padding: 14px 16px; }
+.example-text { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; }
+.example-text b { color: #312e81; font-size: 14.5px; }
+.example-text span { color: #4338ca; font-size: 13px; line-height: 1.45; }
+.example-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* ───────── Editor ───────── */
 .editor { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 .ebar { height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #fff; border-bottom: 1px solid var(--line); z-index: 10; }

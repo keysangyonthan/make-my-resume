@@ -3,7 +3,7 @@ import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { getResume, saveResume } from '../lib/store';
 import {
-  SECTION_LABELS, emptyCustom, emptyEducation, emptyExperience, emptyProject, emptySkill,
+  SECTION_LABELS, clearedData, emptyCustom, emptyEducation, emptyExperience, emptyProject, emptySkill,
 } from '../lib/resume';
 import { PAGE_SIZES } from '../templates';
 import CustomiseLook from '../components/CustomiseLook';
@@ -35,6 +35,7 @@ export default function Editor() {
   const [manualDone, setManualDone] = useState(false);
   const [leaving, setLeaving] = useState(null); // null | saving | saved | error — the "saving before you go" overlay
   const [lookOpen, setLookOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [tab, setTab] = useState('edit');
   const [pageCount, setPageCount] = useState(1);
   const [toast, setToast] = useState('');
@@ -402,6 +403,27 @@ export default function Editor() {
       <div className="ebody" data-tab={tab}>
         <div className="eform">
           <div className="eform-in">
+            {resume.exampleContent && (
+              <div className="example-banner" role="note">
+                <div className="example-text">
+                  <b>This template is filled with example content.</b>
+                  <span>Replace it with your own details — or clear it and start fresh. Your name and email are kept.</span>
+                </div>
+                <div className="example-actions">
+                  {confirmClear ? (
+                    <>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(false)}>Cancel</button>
+                      <button className="btn btn-primary btn-sm" onClick={() => { change((r) => ({ ...r, data: clearedData(r.data), exampleContent: false })); setConfirmClear(false); }}>Yes, clear it</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn btn-white btn-sm" onClick={() => setConfirmClear(true)}>Clear example content</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setMeta({ exampleContent: false })}>Keep editing</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             <CustomiseLook resume={resume} preview={deferred} setMeta={setMeta} pageCount={pageCount} open={lookOpen} setOpen={setLookOpen} />
             <SectionCard title={SECTION_LABELS.personal} hint="How employers will reach you." className="head-card">
               <div className="grid2">

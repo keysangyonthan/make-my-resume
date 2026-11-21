@@ -96,6 +96,12 @@ export const SAMPLE_DATA = {
   ],
 };
 
+// Empties everything except the person's name and email (used by "Clear example content").
+export function clearedData(data) {
+  const blank = blankResume().data;
+  return { ...blank, personal: { ...blank.personal, fullName: data.personal?.fullName || '', email: data.personal?.email || '' } };
+}
+
 export function sampleResume() {
   const r = blankResume();
   return { ...r, title: 'Example resume', data: structuredClone(SAMPLE_DATA) };

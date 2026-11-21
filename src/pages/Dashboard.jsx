@@ -35,7 +35,15 @@ export default function Dashboard() {
   async function create({ example = false, template } = {}) {
     if (creating) return;
     setCreating(template || (example ? 'example' : 'blank'));
-    const r = example ? sampleResume() : blankResume({ name: user.name, email: user.email });
+    // Templates (and "Start from an example") open with example content to edit,
+    // personalised with the user's own name and email. "Blank" starts empty.
+    const withExample = example || !!template;
+    const r = withExample ? sampleResume() : blankResume({ name: user.name, email: user.email });
+    if (withExample) {
+      if (user.name) r.data.personal.fullName = user.name;
+      if (user.email) r.data.personal.email = user.email;
+      r.exampleContent = true;
+    }
     if (template) { r.template = template; r.title = `${TEMPLATES[template].name} resume`; }
     try {
       await saveResume(user.uid, r);

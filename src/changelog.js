@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.16',
+    date: '2026-11-21',
+    title: 'Templates start filled in',
+    tag: 'Fixed',
+    items: [
+      'Picking a template now opens it with example content (and your own name and email), instead of an almost empty page.',
+      'A notice lets you clear the example content in one click when you want to start fresh.',
+      'Work-in-progress features now ask for the password again in every new browser session.',
+    ],
+  },
+  {
     version: '1.15',
     date: '2026-11-21',
     title: 'Upload resume: back in the workshop',
