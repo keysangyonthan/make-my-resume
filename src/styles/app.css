@@ -400,6 +400,18 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .share-qr b { display: block; font-size: 14px; color: var(--ink); }
 .share-qr span { font-size: 13px; color: var(--muted); }
 
+/* Feedback form */
+.fb-form { display: flex; flex-direction: column; gap: 14px; }
+.fb-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.fb-kind { border: 1px solid #e3e7ef; background: #fff; border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--text); }
+.fb-kind:hover { border-color: #c7d2fe; }
+.fb-kind.on { border-color: var(--brand); background: var(--brand-50); color: var(--brand-600); }
+.fb-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.fb-sent { text-align: center; padding: 8px 0 4px; }
+.fb-sent p { color: var(--text); font-size: 15px; line-height: 1.5; margin: 6px 0 20px; }
+.fb-heart { font-size: 40px; animation: beat 1.6s ease-in-out infinite; }
+@keyframes beat { 0%, 60%, 100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(1); } 45% { transform: scale(1.12); } }
+
 /* ───────── Style gallery modal ───────── */
 .modal-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 24px; animation: fadeIn 0.15s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } }

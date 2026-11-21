@@ -3,6 +3,16 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.13',
+    date: '2026-11-21',
+    title: 'Say hello',
+    tag: 'New',
+    items: [
+      'New footer on the home page — made with ❤️ by Keysang.',
+      '“Contact me” opens a quick form to share an idea, report a problem or just say hi. Also in your profile menu as “Send feedback”.',
+    ],
+  },
+  {
     version: '1.12',
     date: '2026-11-21',
     title: 'Save when you’re ready — and never lose work',

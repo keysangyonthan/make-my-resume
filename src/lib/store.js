@@ -1,6 +1,6 @@
 // Data layer: Firestore when configured, localStorage otherwise (demo mode).
 import {
-  collection, doc, getDoc, getDocs, setDoc, deleteDoc, orderBy, query, serverTimestamp,
+  addDoc, collection, doc, getDoc, getDocs, setDoc, deleteDoc, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
 
@@ -66,4 +66,27 @@ export async function saveProfile(uid, profile) {
     return;
   }
   await setDoc(doc(db, 'users', uid), { profile: { ...profile, updatedAt: serverTimestamp() } }, { merge: true });
+}
+
+// ── Feedback from the "Contact me" form, stored at feedback/{autoId} ──
+// Visitors can only add messages; nobody can read them from the website.
+// Read them in Firebase → Firestore → Data → feedback.
+export async function submitFeedback({ kind, name, email, message, uid }) {
+  const entry = {
+    kind: String(kind || 'other').slice(0, 20),
+    name: String(name || '').trim().slice(0, 100),
+    email: String(email || '').trim().slice(0, 200),
+    message: String(message || '').trim().slice(0, 2000),
+    uid: uid || '',
+    page: window.location.pathname.slice(0, 100),
+  };
+  if (!isFirebaseConfigured) {
+    try {
+      const all = JSON.parse(localStorage.getItem('rk_feedback_demo') || '[]');
+      all.push({ ...entry, createdAt: Date.now() });
+      localStorage.setItem('rk_feedback_demo', JSON.stringify(all));
+    } catch { /* ignore */ }
+    return;
+  }
+  await addDoc(collection(db, 'feedback'), { ...entry, createdAt: serverTimestamp() });
 }

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { APP_NAME } from '../config';
+import { APP_NAME, CREATOR_NAME } from '../config';
 import { useAuth } from '../lib/auth';
 import { sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
+import FeedbackModal from '../components/FeedbackModal';
 import '../styles/landing.css';
 
 function useStart() {
@@ -154,6 +155,7 @@ function StyleStrip() {
 
 export default function Landing() {
   const ctx = useStart();
+  const [contactOpen, setContactOpen] = useState(false);
   const { start, busy, error, user, demo } = ctx;
   const navigate = useNavigate();
   useReveal();
@@ -290,14 +292,24 @@ export default function Landing() {
       </section>
 
       <footer className="ap-foot">
+        <div className="ap-foot-top">
+          <p className="ap-made">Made with <span className="ap-heart" aria-label="love">❤️</span> by {CREATOR_NAME}</p>
+          <p className="ap-foot-sub">Have an idea, found a bug, or just want to say hi?</p>
+          <button className="ap-contact" onClick={() => setContactOpen(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+            Contact me
+          </button>
+        </div>
         <div className="ap-foot-in">
           <span>© {new Date().getFullYear()} {APP_NAME}</span>
           <span className="ap-foot-links">
             <Link to="/changelog">What’s new</Link>
             <a href="#faq">FAQ</a>
+            <button className="ap-foot-link" onClick={() => setContactOpen(true)}>Feedback</button>
           </span>
         </div>
       </footer>
+      {contactOpen && <FeedbackModal onClose={() => setContactOpen(false)} />}
     </div>
   );
 }
