@@ -7,6 +7,8 @@ import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
 import DocThumb from '../components/DocThumb';
 import { importResumeFile } from '../lib/importResume';
+import { isUploadUnlocked } from '../lib/wip';
+import WipGate from '../components/WipGate';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
@@ -54,6 +56,9 @@ export default function Dashboard() {
   const fileRef = useRef(null);
   const [importing, setImporting] = useState(null); // null | { name } | { error }
   const [dragOver, setDragOver] = useState(false);
+  const [unlocked, setUnlocked] = useState(isUploadUnlocked);
+  const [gate, setGate] = useState(false);
+  const pickFile = () => (unlocked ? fileRef.current?.click() : setGate(true));
 
   // Upload a PDF / Word / text resume → editable document.
   async function upload(file) {
@@ -132,20 +137,21 @@ export default function Dashboard() {
             </button>
             <button
               className={`tpl-card upload ${dragOver ? 'drag' : ''}`}
-              onClick={() => fileRef.current?.click()}
+              onClick={pickFile}
               disabled={!!creating || !!importing?.name}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => { e.preventDefault(); setDragOver(false); upload(e.dataTransfer.files?.[0]); }}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); if (unlocked) upload(e.dataTransfer.files?.[0]); else setGate(true); }}
             >
               <div className="tpl-card-thumb upload-thumb">
+                {!unlocked && <span className="wip-chip">🔒 Work in progress</span>}
                 <span className="up-ic">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
                 </span>
                 <span className="up-types">PDF · Word</span>
               </div>
               <div className="tpl-card-name">Upload resume</div>
-              <div className="tpl-card-desc">Edit your own file directly</div>
+              <div className="tpl-card-desc">{unlocked ? 'Edit your own file directly' : 'Coming soon'}</div>
             </button>
             <input ref={fileRef} type="file" hidden
               accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -210,6 +216,10 @@ export default function Dashboard() {
         )}
       </main>
 
+      {gate && (
+        <WipGate onClose={() => setGate(false)} onUnlock={() => { setUnlocked(true); setGate(false); setTimeout(() => fileRef.current?.click(), 50); }} />
+      )}
+
       {importing && (
         <div className="leave-overlay" role="alertdialog" aria-live="assertive">
           <div className="leave-card">
@@ -226,7 +236,7 @@ export default function Dashboard() {
                 <p>{importing.error}</p>
                 <div className="leave-actions">
                   <button className="btn btn-ghost btn-sm" onClick={() => setImporting(null)}>Close</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => { setImporting(null); fileRef.current?.click(); }}>Choose another file</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => { setImporting(null); pickFile(); }}>Choose another file</button>
                 </div>
               </>
             )}

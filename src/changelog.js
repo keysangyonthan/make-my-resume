@@ -3,6 +3,16 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.15',
+    date: '2026-11-21',
+    title: 'Upload resume: back in the workshop',
+    tag: 'Fixed',
+    items: [
+      '“Upload resume” is marked as work in progress while we finish it, and needs a password to try.',
+      'Everything else works as before.',
+    ],
+  },
+  {
     version: '1.14',
     date: '2026-11-21',
     title: 'Upload your own resume',

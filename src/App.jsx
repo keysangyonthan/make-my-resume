@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
-import { Navigate, Outlet, RouterProvider, createBrowserRouter, createHashRouter } from 'react-router-dom';
+import { Suspense, lazy, useState } from 'react';
+import { Navigate, Outlet, RouterProvider, createBrowserRouter, createHashRouter, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +8,8 @@ import Editor from './pages/Editor';
 const DocEditor = lazy(() => import('./pages/DocEditor'));
 import Changelog from './pages/Changelog';
 import UpdateBanner from './components/UpdateBanner';
+import { isUploadUnlocked } from './lib/wip';
+import { WipPage } from './components/WipGate';
 import { VersionProvider } from './lib/version';
 
 function Protected({ children }) {
@@ -15,6 +17,14 @@ function Protected({ children }) {
   if (loading) return <div className="center-screen"><div className="spinner" /></div>;
   if (!user) return <Navigate to="/" replace />;
   return children;
+}
+
+// Uploaded-resume editor stays behind the work-in-progress password until it's ready.
+function DocRoute() {
+  const [ok, setOk] = useState(isUploadUnlocked);
+  const navigate = useNavigate();
+  if (!ok) return <WipPage onUnlock={() => setOk(true)} onBack={() => navigate('/app')} />;
+  return <Suspense fallback={<div className="center-screen"><div className="spinner" /></div>}><DocEditor /></Suspense>;
 }
 
 function Layout() {
@@ -34,7 +44,7 @@ const routes = [
       { path: '/changelog', element: <Changelog /> },
       { path: '/app', element: <Protected><Dashboard /></Protected> },
       { path: '/app/edit/:id', element: <Protected><Editor /></Protected> },
-      { path: '/app/doc/:id', element: <Protected><Suspense fallback={<div className="center-screen"><div className="spinner" /></div>}><DocEditor /></Suspense></Protected> },
+      { path: '/app/doc/:id', element: <Protected><DocRoute /></Protected> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
