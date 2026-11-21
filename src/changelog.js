@@ -3,6 +3,18 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.12',
+    date: '2026-11-21',
+    title: 'Save when you’re ready — and never lose work',
+    tag: 'Improved',
+    items: [
+      'No more saving on every keystroke. Your resume saves when you click Save (or ⌘S / Ctrl+S), export a PDF, or leave the editor.',
+      'Leaving with unsaved changes? A “Saving your resume…” screen saves everything first, then takes you where you were going.',
+      'Unsaved changes are also kept safely in your browser. If the tab closes before saving, they come back next time you open the resume.',
+      'The Save button shows a dot when you have unsaved changes.',
+    ],
+  },
+  {
     version: '1.11',
     date: '2026-11-21',
     title: 'Your profile & sharing',

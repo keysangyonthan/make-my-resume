@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { beforeLeave } from '../lib/leaveGuard';
 import { Avatar } from './ui';
 import EditProfileModal from './EditProfileModal';
 import ShareModal, { shareSite } from './ShareModal';
@@ -59,7 +60,7 @@ export default function ProfileMenu() {
           <Link role="menuitem" to="/changelog" onClick={() => setOpen(false)}><Ic d={I.spark} />What’s new</Link>
           <Link role="menuitem" to="/#faq" onClick={() => setOpen(false)}><Ic d={I.help} />Help &amp; FAQ</Link>
           <div className="pmenu-sep" />
-          <button role="menuitem" className="danger" onClick={pick(async () => { await signOut(); navigate('/'); })}>
+          <button role="menuitem" className="danger" onClick={pick(async () => { if (!(await beforeLeave())) return; await signOut(); navigate('/'); })}>
             <Ic d={I.out} />{demo ? 'Exit demo' : 'Sign out'}
           </button>
         </div>

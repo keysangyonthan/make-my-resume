@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { getResume, saveResume } from '../lib/store';
 import {
@@ -12,6 +12,7 @@ import ResumePages from '../components/ResumePages';
 import { ItemList, SectionCard, TextArea, TextInput } from '../components/FormParts';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
+import { setLeaveGuard } from '../lib/leaveGuard';
 
 const HINTS = {
   summary: 'Two or three sentences about who you are and what you’re great at.',
@@ -22,14 +23,17 @@ const HINTS = {
   custom: 'Languages, awards, volunteering, interests — anything else.',
 };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export default function Editor() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resume, setResume] = useState(null);
-  const [status, setStatus] = useState('saved'); // saved | saving | error
+  const [status, setStatus] = useState('saved'); // saved | dirty | saving | error
   const [savedAt, setSavedAt] = useState(null);
   const [manualDone, setManualDone] = useState(false);
+  const [leaving, setLeaving] = useState(null); // null | saving | saved | error — the "saving before you go" overlay
   const [lookOpen, setLookOpen] = useState(false);
   const [tab, setTab] = useState('edit');
   const [pageCount, setPageCount] = useState(1);
@@ -37,41 +41,66 @@ export default function Editor() {
   const [previewW, setPreviewW] = useState(560);
   const previewRef = useRef(null);
   const dirty = useRef(false);
+  const saving = useRef(false);
   const latest = useRef(null);
-  const timer = useRef(null);
-  const retry = useRef(null);
+  const draftTimer = useRef(null);
+  const leaveAnswer = useRef(null);
   useMinuteTick();
 
-  // Load
+  // A copy of unsaved changes is kept in this browser (not in the database),
+  // so nothing is lost even if the tab closes before saving.
+  const DRAFT_KEY = `rk_draft_${user.uid}_${id}`;
+  const writeDraft = useCallback(() => {
+    clearTimeout(draftTimer.current);
+    if (!dirty.current || !latest.current) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), resume: latest.current })); } catch { /* storage full/blocked */ }
+  }, [DRAFT_KEY]);
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+  }, [DRAFT_KEY]);
+
+  // Load (and restore unsaved changes from a previous visit, if any)
   useEffect(() => {
-    getResume(user.uid, id).then((r) => {
-      if (!r) return navigate('/app', { replace: true });
+    getResume(user.uid, id).then((server) => {
+      if (!server) return navigate('/app', { replace: true });
+      let r = server;
+      let draft = null;
+      try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { /* ignore */ }
+      if (draft?.resume && draft.at > (server.updatedAt || 0)) {
+        r = { ...draft.resume, id: server.id };
+        dirty.current = true;
+        setStatus('dirty');
+        setToast('We brought back changes you hadn’t saved yet. Click Save to keep them.');
+      } else if (draft) {
+        clearDraft();
+      }
       setResume(r);
-      setSavedAt(r.updatedAt || Date.now());
+      setSavedAt(server.updatedAt || Date.now());
       latest.current = r;
     }).catch(() => navigate('/app', { replace: true }));
-  }, [user.uid, id, navigate]);
+  }, [user.uid, id, navigate, DRAFT_KEY, clearDraft]);
 
-  // Saves the latest version. Called automatically after typing pauses,
-  // on leaving the page, and by the Save button / Cmd+S (force = save even if unchanged).
+  // Saves to the database. Happens only when you click Save / press ⌘S,
+  // export a PDF, or leave the editor — not while you type.
   const flush = useCallback(async ({ force = false } = {}) => {
-    clearTimeout(timer.current);
-    clearTimeout(retry.current);
     if (!latest.current || (!dirty.current && !force)) return true;
     dirty.current = false;
+    saving.current = true;
     setStatus('saving');
     try {
       await saveResume(user.uid, latest.current);
       setSavedAt(Date.now());
-      setStatus(dirty.current ? 'saving' : 'saved');
+      if (dirty.current) setStatus('dirty'); else { setStatus('saved'); clearDraft(); }
       return true;
     } catch {
       dirty.current = true;
       setStatus('error');
-      retry.current = setTimeout(() => flush(), 5000); // keep trying in the background
+      writeDraft();
       return false;
+    } finally {
+      saving.current = false;
     }
-  }, [user.uid]);
+  }, [user.uid, clearDraft, writeDraft]);
 
   const saveNow = useCallback(async () => {
     const ok = await flush({ force: true });
@@ -80,6 +109,57 @@ export default function Editor() {
       setTimeout(() => setManualDone(false), 1600);
     }
   }, [flush]);
+
+  // Shown when leaving with unsaved changes: "Saving your resume…" → "All changes saved".
+  // Resolves true to continue leaving, false to stay.
+  const saveBeforeLeaving = useCallback(async () => {
+    if (!dirty.current && !saving.current) return true;
+    setLeaving('saving');
+    const t0 = Date.now();
+    while (saving.current) await sleep(50); // let a save already in progress finish
+    const ok = await flush();
+    await sleep(Math.max(0, 450 - (Date.now() - t0)));
+    if (!ok) {
+      setLeaving('error');
+      return new Promise((resolve) => { leaveAnswer.current = resolve; });
+    }
+    setLeaving('saved');
+    await sleep(700);
+    setLeaving(null);
+    return true;
+  }, [flush]);
+
+  function answerLeave(choice) {
+    if (choice === 'retry') {
+      setLeaving('saving');
+      flush().then(async (ok) => {
+        if (!ok) { setLeaving('error'); return; }
+        setLeaving('saved');
+        await sleep(700);
+        setLeaving(null);
+        leaveAnswer.current?.(true);
+      });
+      return;
+    }
+    setLeaving(null);
+    leaveAnswer.current?.(choice === 'leave');
+  }
+
+  // Let sign-out / "Refresh" elsewhere in the app save first.
+  useEffect(() => setLeaveGuard(saveBeforeLeaving), [saveBeforeLeaving]);
+
+  // In-app navigation (back arrow, browser Back, menu links): pause, save, then continue.
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    (dirty.current || saving.current) && currentLocation.pathname !== nextLocation.pathname);
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return undefined;
+    let live = true;
+    saveBeforeLeaving().then((go) => {
+      if (!live) return;
+      if (go) blocker.proceed(); else blocker.reset();
+    });
+    return () => { live = false; };
+  }, [blocker.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cmd+S / Ctrl+S saves instead of opening the browser's "Save page" dialog.
   useEffect(() => {
@@ -97,17 +177,30 @@ export default function Editor() {
       return next;
     });
     dirty.current = true;
-    setStatus('saving');
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => flush(), 700);
-  }, [flush]);
+    setStatus('dirty');
+    clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(writeDraft, 400);
+  }, [writeDraft]);
 
-  // Save on leave
+  // Leaving the website itself (closing the tab, typing another address, switching apps):
+  // keep the local copy and save to the database.
   useEffect(() => {
-    const onUnload = (e) => { if (dirty.current) { flush(); e.preventDefault(); e.returnValue = ''; } };
+    const onUnload = (e) => {
+      if (!dirty.current) return;
+      writeDraft();
+      flush();
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    const onHide = () => { if (document.visibilityState === 'hidden' && dirty.current) { writeDraft(); flush(); } };
     window.addEventListener('beforeunload', onUnload);
-    return () => { window.removeEventListener('beforeunload', onUnload); clearTimeout(retry.current); flush(); };
-  }, [flush]);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('beforeunload', onUnload);
+      document.removeEventListener('visibilitychange', onHide);
+      if (dirty.current) { writeDraft(); flush(); }
+    };
+  }, [flush, writeDraft]);
 
   // Fit preview to available width
   useEffect(() => {
@@ -276,8 +369,9 @@ export default function Editor() {
 
   const statusText = {
     saved: savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved',
+    dirty: 'Unsaved changes',
     saving: 'Saving…',
-    error: 'Couldn’t save — retrying',
+    error: 'Couldn’t save — try again',
   }[status];
 
   return (
@@ -295,7 +389,7 @@ export default function Editor() {
         <span className={`save-state ${status} hide-sm`} title={savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : undefined} aria-live="polite">
           <span className="s-dot" />{statusText}
         </span>
-        <button className={`btn btn-white btn-sm save-btn ${manualDone ? 'done' : ''}`} onClick={saveNow} disabled={status === 'saving'}
+        <button className={`btn btn-white btn-sm save-btn ${manualDone ? 'done' : ''} ${status === 'dirty' || status === 'error' ? 'needs-save' : ''}`} onClick={saveNow} disabled={status === 'saving'}
           title="Save now (⌘S / Ctrl+S)" aria-label="Save">
           {manualDone ? Icon.check : Icon.save}
           <span className="hide-xs">{status === 'saving' ? 'Saving…' : manualDone ? 'Saved' : 'Save'}</span>
@@ -333,6 +427,39 @@ export default function Editor() {
           </div>
         </div>
       </div>
+
+      {leaving && (
+        <div className="leave-overlay" role="alertdialog" aria-live="assertive" aria-label="Saving your resume">
+          <div className="leave-card">
+            {leaving === 'saving' && (
+              <>
+                <div className="spinner" />
+                <h3>Saving your resume…</h3>
+                <p>Hang on a second — we’re saving your latest changes before you go.</p>
+              </>
+            )}
+            {leaving === 'saved' && (
+              <>
+                <div className="leave-check">{Icon.check}</div>
+                <h3>All changes saved</h3>
+                <p>Your resume is safe. You can pick up where you left off anytime.</p>
+              </>
+            )}
+            {leaving === 'error' && (
+              <>
+                <div className="leave-warn">!</div>
+                <h3>Couldn’t save right now</h3>
+                <p>You may be offline. Your changes are kept on this device and will come back the next time you open this resume.</p>
+                <div className="leave-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => answerLeave('stay')}>Stay here</button>
+                  <button className="btn btn-white btn-sm" onClick={() => answerLeave('leave')}>Leave anyway</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => answerLeave('retry')}>Try again</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast" role="status">{toast}<button onClick={() => setToast('')}>Got it</button></div>

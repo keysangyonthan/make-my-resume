@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, RouterProvider, createBrowserRouter, createHashRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
@@ -7,9 +7,6 @@ import Changelog from './pages/Changelog';
 import UpdateBanner from './components/UpdateBanner';
 import { VersionProvider } from './lib/version';
 
-// The single-file demo build can't rely on server rewrites, so it uses hash URLs.
-const Router = import.meta.env.MODE === 'demo' ? HashRouter : BrowserRouter;
-
 function Protected({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="center-screen"><div className="spinner" /></div>;
@@ -17,20 +14,38 @@ function Protected({ children }) {
   return children;
 }
 
+function Layout() {
+  return (
+    <>
+      <UpdateBanner />
+      <Outlet />
+    </>
+  );
+}
+
+const routes = [
+  {
+    element: <Layout />,
+    children: [
+      { path: '/', element: <Landing /> },
+      { path: '/changelog', element: <Changelog /> },
+      { path: '/app', element: <Protected><Dashboard /></Protected> },
+      { path: '/app/edit/:id', element: <Protected><Editor /></Protected> },
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+];
+
+// The single-file demo build can't rely on server rewrites, so it uses hash URLs.
+// (A "data router" is needed so the editor can save before you navigate away.)
+const future = { v7_relativeSplatPath: true, v7_fetcherPersist: true, v7_normalizeFormMethod: true, v7_partialHydration: true, v7_skipActionErrorRevalidation: true };
+const router = import.meta.env.MODE === 'demo' ? createHashRouter(routes, { future }) : createBrowserRouter(routes, { future });
+
 export default function App() {
   return (
     <AuthProvider>
       <VersionProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <UpdateBanner />
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/changelog" element={<Changelog />} />
-          <Route path="/app" element={<Protected><Dashboard /></Protected>} />
-          <Route path="/app/edit/:id" element={<Protected><Editor /></Protected>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </VersionProvider>
     </AuthProvider>
   );

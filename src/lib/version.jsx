@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { beforeLeave } from './leaveGuard';
 
 /* global __BUILD_ID__, __BUILD_TIME__, __BUILD_MSG__ */
 // Baked in at build time (see vite.config.js).
@@ -37,7 +38,8 @@ export function VersionProvider({ children }) {
   }, [check]);
 
   const updateAvailable = Boolean(latest?.version && latest.version !== CURRENT.version);
-  const refresh = () => window.location.reload();
+  // Save any unsaved resume first, then reload.
+  const refresh = async () => { if (await beforeLeave()) window.location.reload(); };
 
   return (
     <VersionContext.Provider value={{ current: CURRENT, latest, updateAvailable, refresh }}>
