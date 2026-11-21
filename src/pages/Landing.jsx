@@ -6,7 +6,6 @@ import { sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
-import { UpdateStatus } from '../components/UpdateBanner';
 import ProfileMenu from '../components/ProfileMenu';
 import '../styles/landing.css';
 
@@ -188,7 +187,6 @@ export default function Landing() {
             <Link to="/changelog">What’s new</Link>
           </div>
           <div className="ap-nav-right">
-            <span className="ap-hide-md"><UpdateStatus /></span>
             <button className="ap-btn small" onClick={start} disabled={busy}>
               {user ? 'My resumes' : demo ? 'Get started' : 'Sign in'}
             </button>

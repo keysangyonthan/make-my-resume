@@ -6,7 +6,6 @@ import { blankResume, sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
-import { UpdateStatus } from '../components/UpdateBanner';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
 export default function Dashboard() {
@@ -72,7 +71,6 @@ export default function Dashboard() {
         <div className="nav-in">
           <Brand to="/app" />
           <div className="nav-links">
-            <span className="hide-xs"><UpdateStatus /></span>
             <ShareButton />
             <ProfileMenu />
           </div>
