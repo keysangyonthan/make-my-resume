@@ -7,6 +7,7 @@ import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
 import { UpdateStatus } from '../components/UpdateBanner';
+import ProfileMenu from '../components/ProfileMenu';
 import '../styles/landing.css';
 
 function useStart() {
@@ -158,6 +159,12 @@ export default function Landing() {
   const navigate = useNavigate();
   useReveal();
 
+  // Support links like /#faq (e.g. from the account menu).
+  useEffect(() => {
+    const id = window.location.hash.replace('#', '');
+    if (id && !id.startsWith('/')) setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 300);
+  }, []);
+
   // Returning from a redirect-based Google sign-in (mobile): go straight to the app.
   useEffect(() => {
     let flag = null;
@@ -185,6 +192,7 @@ export default function Landing() {
             <button className="ap-btn small" onClick={start} disabled={busy}>
               {user ? 'My resumes' : demo ? 'Get started' : 'Sign in'}
             </button>
+            {user && <ProfileMenu />}
           </div>
         </div>
       </nav>

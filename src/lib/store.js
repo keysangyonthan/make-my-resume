@@ -48,3 +48,22 @@ export async function deleteResume(uid, id) {
   }
   await deleteDoc(doc(col(uid), id));
 }
+
+// ── Profile (custom name + photo), stored at users/{uid} ──
+const PROFILE_KEY = (uid) => `rk_profile_${uid}`;
+
+export async function getProfile(uid) {
+  if (!isFirebaseConfigured) {
+    try { return JSON.parse(localStorage.getItem(PROFILE_KEY(uid))) || {}; } catch { return {}; }
+  }
+  const d = await getDoc(doc(db, 'users', uid));
+  return d.exists() ? d.data().profile || {} : {};
+}
+
+export async function saveProfile(uid, profile) {
+  if (!isFirebaseConfigured) {
+    try { localStorage.setItem(PROFILE_KEY(uid), JSON.stringify(profile)); } catch { /* quota */ }
+    return;
+  }
+  await setDoc(doc(db, 'users', uid), { profile: { ...profile, updatedAt: serverTimestamp() } }, { merge: true });
+}

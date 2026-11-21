@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { useMinuteTick, useVersion } from '../lib/version';
 import { Brand, timeAgo } from '../components/ui';
 import { UpdateStatus } from '../components/UpdateBanner';
+import ProfileMenu from '../components/ProfileMenu';
 import { APP_NAME } from '../config';
 
 const fmtDate = (iso) =>
@@ -31,6 +32,7 @@ export default function Changelog() {
           <div className="nav-links">
             <UpdateStatus />
             <Link className="btn btn-primary" to={user ? '/app' : '/'}>{user ? 'My resumes' : 'Home'}</Link>
+            {user && <ProfileMenu />}
           </div>
         </div>
       </nav>

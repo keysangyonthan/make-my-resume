@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { deleteResume, listResumes, newId, saveResume } from '../lib/store';
 import { blankResume, sampleResume } from '../lib/resume';
-import { TEMPLATES } from '../templates';
+import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
-import { Avatar, Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
+import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import { UpdateStatus } from '../components/UpdateBanner';
+import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
 export default function Dashboard() {
-  const { user, signOut, demo } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -27,11 +28,29 @@ export default function Dashboard() {
     return () => window.removeEventListener('click', close);
   }, [menu]);
 
-  async function create(example = false) {
+  const [creating, setCreating] = useState(null);
+  async function create({ example = false, template } = {}) {
+    if (creating) return;
+    setCreating(template || (example ? 'example' : 'blank'));
     const r = example ? sampleResume() : blankResume({ name: user.name, email: user.email });
-    await saveResume(user.uid, r);
-    navigate(`/app/edit/${r.id}`);
+    if (template) { r.template = template; r.title = `${TEMPLATES[template].name} resume`; }
+    try {
+      await saveResume(user.uid, r);
+      navigate(`/app/edit/${r.id}`);
+    } catch (e) {
+      setError(e.message);
+      setCreating(null);
+    }
   }
+
+  // Template previews use example content with the user's own name where we have it.
+  const preview = useMemo(() => {
+    const r = sampleResume();
+    if (user.name) r.data.personal.fullName = user.name;
+    return r;
+  }, [user.name]);
+  const stripRef = useRef(null);
+  const scrollStrip = (dir) => stripRef.current?.scrollBy({ left: dir * 520, behavior: 'smooth' });
 
   async function duplicate(r) {
     const copy = { ...structuredClone(r), id: newId(), title: `${r.title} (copy)` };
@@ -54,10 +73,8 @@ export default function Dashboard() {
           <Brand to="/app" />
           <div className="nav-links">
             <span className="hide-xs"><UpdateStatus /></span>
-            <button className="btn btn-ghost btn-sm" onClick={async () => { await signOut(); navigate('/'); }}>
-              {demo ? 'Exit demo' : 'Sign out'}
-            </button>
-            <Avatar user={user} />
+            <ShareButton />
+            <ProfileMenu />
           </div>
         </div>
       </nav>
@@ -68,7 +85,37 @@ export default function Dashboard() {
             <h1>{firstName ? `Welcome back, ${firstName}` : 'Your resumes'}</h1>
             <p>Create a new resume or pick up where you left off.</p>
           </div>
-          <button className="btn btn-primary" onClick={() => create(false)}>{Icon.plus} New resume</button>
+        </div>
+
+        <section className="dash-section">
+          <div className="dash-section-head">
+            <h2>Start a new resume</h2>
+            <div className="strip-nav">
+              <button className="icon-btn" onClick={() => scrollStrip(-1)} aria-label="Scroll templates left">{Icon.back}</button>
+              <button className="icon-btn" onClick={() => scrollStrip(1)} aria-label="Scroll templates right" style={{ transform: 'scaleX(-1)' }}>{Icon.back}</button>
+            </div>
+          </div>
+          <div className="tpl-strip" ref={stripRef}>
+            <button className={`tpl-card blank ${creating === 'blank' ? 'busy' : ''}`} onClick={() => create()} disabled={!!creating}>
+              <div className="tpl-card-thumb blank-thumb"><span className="plus">+</span></div>
+              <div className="tpl-card-name">Blank</div>
+              <div className="tpl-card-desc">Start from scratch</div>
+            </button>
+            {TEMPLATE_KEYS.map((k) => (
+              <button key={k} className={`tpl-card ${creating === k ? 'busy' : ''}`} onClick={() => create({ template: k })} disabled={!!creating}>
+                <div className="tpl-card-thumb">
+                  <ResumePages resume={{ ...preview, template: k }} width={150} maxPages={1} gap={0} />
+                  <span className="tpl-card-cta">{creating === k ? 'Creating…' : 'Use template'}</span>
+                </div>
+                <div className="tpl-card-name">{TEMPLATES[k].name}</div>
+                <div className="tpl-card-desc">{TEMPLATES[k].blurb}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="dash-section-head" style={{ marginTop: 8 }}>
+          <h2>Your resumes{items?.length ? <span className="count">{items.length}</span> : null}</h2>
         </div>
 
         {error && <p style={{ color: '#dc2626' }}>Couldn’t load your resumes: {error}</p>}
@@ -76,13 +123,8 @@ export default function Dashboard() {
           <div style={{ display: 'grid', placeItems: 'center', padding: 80 }}><div className="spinner" /></div>
         ) : (
           <div className="grid-cards">
-            <button className="newcard" onClick={() => create(false)}>
-              <span className="plus">+</span>
-              Start from scratch
-              <small>Blank form, ready to fill</small>
-            </button>
             {items.length === 0 && (
-              <button className="newcard" onClick={() => create(true)}>
+              <button className="newcard" onClick={() => create({ example: true })} disabled={!!creating}>
                 <span className="plus" style={{ background: '#0f172a' }}>★</span>
                 Start from an example
                 <small>Edit a filled-in resume</small>

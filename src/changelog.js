@@ -3,6 +3,41 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.11',
+    date: '2026-11-21',
+    title: 'Your profile & sharing',
+    tag: 'New',
+    items: [
+      'Click your profile picture for a menu: Edit profile, Share website, What’s new, Help and Sign out.',
+      'Edit profile: change your name and upload your own photo (or go back to your Google photo).',
+      'New resumes start with your profile name.',
+      'Share the website with a link, WhatsApp, LinkedIn, X, email or a QR code. On phones, it opens your phone’s share sheet.',
+    ],
+  },
+  {
+    version: '1.10',
+    date: '2026-11-21',
+    title: 'Save button',
+    tag: 'New',
+    items: [
+      'A Save button next to Export PDF — or press ⌘S / Ctrl+S. Autosave still works as before.',
+      'The save status now sits beside the Save button and shows when you last saved (e.g. “Saved 2 min ago”).',
+      'If saving fails (for example, you go offline), it keeps retrying in the background.',
+      'Cleaner editor top bar: “Customise look” lives only in the form now.',
+    ],
+  },
+  {
+    version: '1.9',
+    date: '2026-11-21',
+    title: 'Start from a template',
+    tag: 'New',
+    items: [
+      'Your resumes page now opens with a row of all 10 templates, previewed with your name.',
+      'Click a template to start a new resume in that style, or pick Blank to start from scratch.',
+      'Removed the duplicate “New resume” button to keep the page simple.',
+    ],
+  },
+  {
     version: '1.8',
     date: '2026-11-21',
     title: 'A cleaner, simpler home page',

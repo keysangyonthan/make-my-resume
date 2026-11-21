@@ -7,10 +7,11 @@ import {
 } from '../lib/resume';
 import { PAGE_SIZES } from '../templates';
 import CustomiseLook from '../components/CustomiseLook';
-import { UpdateStatus } from '../components/UpdateBanner';
+import ProfileMenu from '../components/ProfileMenu';
 import ResumePages from '../components/ResumePages';
 import { ItemList, SectionCard, TextArea, TextInput } from '../components/FormParts';
-import { BrandMark, Icon, Spinner } from '../components/ui';
+import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
+import { useMinuteTick } from '../lib/version';
 
 const HINTS = {
   summary: 'Two or three sentences about who you are and what you’re great at.',
@@ -26,7 +27,9 @@ export default function Editor() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resume, setResume] = useState(null);
-  const [status, setStatus] = useState('saved');
+  const [status, setStatus] = useState('saved'); // saved | saving | error
+  const [savedAt, setSavedAt] = useState(null);
+  const [manualDone, setManualDone] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
   const [tab, setTab] = useState('edit');
   const [pageCount, setPageCount] = useState(1);
@@ -36,29 +39,56 @@ export default function Editor() {
   const dirty = useRef(false);
   const latest = useRef(null);
   const timer = useRef(null);
+  const retry = useRef(null);
+  useMinuteTick();
 
   // Load
   useEffect(() => {
     getResume(user.uid, id).then((r) => {
       if (!r) return navigate('/app', { replace: true });
       setResume(r);
+      setSavedAt(r.updatedAt || Date.now());
       latest.current = r;
     }).catch(() => navigate('/app', { replace: true }));
   }, [user.uid, id, navigate]);
 
-  const flush = useCallback(async () => {
+  // Saves the latest version. Called automatically after typing pauses,
+  // on leaving the page, and by the Save button / Cmd+S (force = save even if unchanged).
+  const flush = useCallback(async ({ force = false } = {}) => {
     clearTimeout(timer.current);
-    if (!dirty.current || !latest.current) return;
+    clearTimeout(retry.current);
+    if (!latest.current || (!dirty.current && !force)) return true;
     dirty.current = false;
     setStatus('saving');
     try {
       await saveResume(user.uid, latest.current);
+      setSavedAt(Date.now());
       setStatus(dirty.current ? 'saving' : 'saved');
+      return true;
     } catch {
       dirty.current = true;
       setStatus('error');
+      retry.current = setTimeout(() => flush(), 5000); // keep trying in the background
+      return false;
     }
   }, [user.uid]);
+
+  const saveNow = useCallback(async () => {
+    const ok = await flush({ force: true });
+    if (ok) {
+      setManualDone(true);
+      setTimeout(() => setManualDone(false), 1600);
+    }
+  }, [flush]);
+
+  // Cmd+S / Ctrl+S saves instead of opening the browser's "Save page" dialog.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveNow(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [saveNow]);
 
   const change = useCallback((fn) => {
     setResume((r) => {
@@ -69,14 +99,14 @@ export default function Editor() {
     dirty.current = true;
     setStatus('saving');
     clearTimeout(timer.current);
-    timer.current = setTimeout(flush, 700);
+    timer.current = setTimeout(() => flush(), 700);
   }, [flush]);
 
   // Save on leave
   useEffect(() => {
     const onUnload = (e) => { if (dirty.current) { flush(); e.preventDefault(); e.returnValue = ''; } };
     window.addEventListener('beforeunload', onUnload);
-    return () => { window.removeEventListener('beforeunload', onUnload); flush(); };
+    return () => { window.removeEventListener('beforeunload', onUnload); clearTimeout(retry.current); flush(); };
   }, [flush]);
 
   // Fit preview to available width
@@ -244,16 +274,11 @@ export default function Editor() {
   };
   const renderKeyed = (k) => <div key={k} style={{ display: 'contents' }}>{renderSection(k)}</div>;
 
-  function openLook() {
-    const next = !lookOpen;
-    setLookOpen(next);
-    if (next) {
-      setTab('edit');
-      requestAnimationFrame(() => document.getElementById('customise-look')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    }
-  }
-
-  const statusText = { saved: 'Saved', saving: 'Saving…', error: 'Not saved — retrying' }[status];
+  const statusText = {
+    saved: savedAt ? `Saved ${timeAgo(savedAt)}` : 'Saved',
+    saving: 'Saving…',
+    error: 'Couldn’t save — retrying',
+  }[status];
 
   return (
     <div className="editor">
@@ -262,17 +287,21 @@ export default function Editor() {
           {Icon.back}<BrandMark size={26} />
         </Link>
         <input className="title-input" value={resume.title} onChange={(e) => setMeta({ title: e.target.value })} aria-label="Resume name" />
-        <span className={`save-state ${status} hide-sm`}><span className="s-dot" />{statusText}</span>
-        <span className="hide-sm"><UpdateStatus /></span>
         <div className="spacer" />
         <div className="seg mobile-tabs">
           <button className={tab === 'edit' ? 'on' : ''} onClick={() => setTab('edit')}>Edit</button>
           <button className={tab === 'preview' ? 'on' : ''} onClick={() => setTab('preview')}>Preview</button>
         </div>
-        <button className={`btn btn-sm ${lookOpen ? 'btn-white' : 'btn-ghost'}`} onClick={openLook} aria-expanded={lookOpen}>
-          {Icon.layout}<span className="hide-sm">Customise look</span>
+        <span className={`save-state ${status} hide-sm`} title={savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : undefined} aria-live="polite">
+          <span className="s-dot" />{statusText}
+        </span>
+        <button className={`btn btn-white btn-sm save-btn ${manualDone ? 'done' : ''}`} onClick={saveNow} disabled={status === 'saving'}
+          title="Save now (⌘S / Ctrl+S)" aria-label="Save">
+          {manualDone ? Icon.check : Icon.save}
+          <span className="hide-xs">{status === 'saving' ? 'Saving…' : manualDone ? 'Saved' : 'Save'}</span>
         </button>
         <button className="btn btn-primary btn-sm" onClick={exportPdf} title="Export PDF" aria-label="Export PDF">{Icon.download}<span className="hide-xs">Export PDF</span></button>
+        <span className="hide-sm"><ProfileMenu /></span>
       </header>
 
       <div className="ebody" data-tab={tab}>
