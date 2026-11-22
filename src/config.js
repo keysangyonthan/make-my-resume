@@ -7,4 +7,6 @@ export const CREATOR_NAME = 'Keysang';
 // Features still being built are hidden behind a simple password.
 // Set UPLOAD_LOCKED to false when "Upload resume" is ready for everyone.
 export const UPLOAD_LOCKED = true;
+// Set to true to show the "Upload resume" tile on Your resumes again.
+export const UPLOAD_VISIBLE = false;
 export const WIP_PASSWORD = '8629';

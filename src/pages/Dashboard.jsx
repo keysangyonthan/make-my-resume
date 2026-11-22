@@ -8,6 +8,7 @@ import ResumePages from '../components/ResumePages';
 import DocThumb from '../components/DocThumb';
 import { importResumeFile } from '../lib/importResume';
 import { isUploadUnlocked } from '../lib/wip';
+import { UPLOAD_VISIBLE } from '../config';
 import WipGate from '../components/WipGate';
 import Modal from '../components/Modal';
 import { LinkedInCard, linkedInOf } from '../components/LinkedIn';
@@ -171,6 +172,7 @@ export default function Dashboard() {
               <div className="tpl-card-name">Blank</div>
               <div className="tpl-card-desc">Start from scratch</div>
             </button>
+            {UPLOAD_VISIBLE && (
             <button
               className={`tpl-card upload ${dragOver ? 'drag' : ''}`}
               onClick={pickFile}
@@ -189,6 +191,7 @@ export default function Dashboard() {
               <div className="tpl-card-name">Upload resume</div>
               <div className="tpl-card-desc">{unlocked ? 'Edit your own file directly' : 'Coming soon'}</div>
             </button>
+            )}
             <input ref={fileRef} type="file" hidden
               accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; upload(f); }} />

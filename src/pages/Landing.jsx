@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth';
 import { sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
 import ResumePages from '../components/ResumePages';
-import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
+import { BrandMark, DemoBanner, GoogleIcon, Wordmark } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
 import FeedbackModal from '../components/FeedbackModal';
 import { LinkedInLogo, linkedInOf } from '../components/LinkedIn';
@@ -206,7 +206,7 @@ export default function Landing() {
       <DemoBanner />
       <nav className="ap-nav">
         <div className="ap-nav-in">
-          <Link to="/" className="ap-brand"><BrandMark size={22} />{APP_NAME}</Link>
+          <Link to="/" className="ap-brand"><BrandMark size={26} /><Wordmark /></Link>
           <div className="ap-links">
             <a href="#live">Overview</a>
             <a href="#styles">Styles</a>

@@ -128,7 +128,7 @@ export function LinkedInModal({ onClose }) {
             {/* Step 1 — get the PDF */}
             <div className={`li-stepcard ${opened ? 'done' : ''}`}>
               <div className="li-stephead"><span className="n">{opened ? '✓' : '1'}</span>Get your PDF from LinkedIn</div>
-              <a className="btn li-btn li-big" href="https://www.linkedin.com/in/me/" target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)}>
+              <a className="btn li-big" href="https://www.linkedin.com/in/me/" target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)}>
                 <LinkedInLogo size={18} /> Open my LinkedIn profile ↗
               </a>
               <p className="li-hint">On your profile, click <b>Resources</b> (sometimes called <b>More</b>) → <b>Save to PDF</b>.</p>
@@ -174,56 +174,72 @@ export function LinkedInModal({ onClose }) {
   );
 }
 
-// Card on the Your resumes page.
+// Card on the Your resumes page — shown only until LinkedIn is linked.
+// Afterwards, Update / Unlink live in the profile menu (LinkedInManage).
 export function LinkedInCard() {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [confirmUnlink, setConfirmUnlink] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const li = linkedInOf(user);
-
-  async function unlink() {
-    setBusy(true);
-    try { await updateProfile({ linkedin: null }); } finally { setBusy(false); setConfirmUnlink(false); }
-  }
-
+  if (linkedInOf(user)) return null;
   return (
-    <section className={`li-card ${li ? 'linked' : ''}`}>
+    <section className="li-card">
       <LinkedInLogo size={36} />
       <div className="li-card-text">
-        {li ? (
-          <>
-            <b>LinkedIn linked{li.data.personal?.fullName ? ` · ${li.data.personal.fullName}` : ''}</b>
-            <span>
-              {li.data.experience.length} job{li.data.experience.length === 1 ? '' : 's'} · {li.data.education.length} school{li.data.education.length === 1 ? '' : 's'}
-              {li.data.skills[0]?.items ? ` · ${li.data.skills[0].items.split(',').length} skills` : ''} — templates below now use your details.
-            </span>
-          </>
-        ) : (
-          <>
-            <b>Link your LinkedIn</b>
-            <span>Fill every template with your own experience, education and skills — in about a minute.</span>
-          </>
-        )}
+        <b>Link your LinkedIn</b>
+        <span>Fill every template with your own experience, education and skills — in about a minute.</span>
       </div>
       <div className="li-card-actions">
-        {li ? (
-          confirmUnlink ? (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => setConfirmUnlink(false)} disabled={busy}>Cancel</button>
-              <button className="btn btn-white btn-sm danger-text" onClick={unlink} disabled={busy}>{busy ? 'Unlinking…' : 'Yes, unlink'}</button>
-            </>
-          ) : (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(true)}>Update</button>
-              <button className="btn btn-white btn-sm" onClick={() => setConfirmUnlink(true)}>Unlink</button>
-            </>
-          )
-        ) : (
-          <button className="btn btn-primary btn-sm li-btn" onClick={() => setOpen(true)}>Link LinkedIn</button>
-        )}
+        <button className="btn btn-primary btn-sm li-btn" onClick={() => setOpen(true)}>Link LinkedIn</button>
       </div>
       {open && <LinkedInModal onClose={() => setOpen(false)} />}
     </section>
+  );
+}
+
+// "LinkedIn" window from the profile menu: see what's linked, update it, or (quietly) unlink.
+export function LinkedInManage({ onClose }) {
+  const { user, updateProfile } = useAuth();
+  const li = linkedInOf(user);
+  const [updating, setUpdating] = useState(!li);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (updating) return <LinkedInModal onClose={() => onClose()} />;
+  if (!li) return null; // just unlinked — the window is closing
+
+  async function unlink() {
+    setBusy(true);
+    try { await updateProfile({ linkedin: null }); onClose(); } finally { setBusy(false); }
+  }
+  const d = li.data;
+  const when = li.linkedAt ? new Date(li.linkedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+  return (
+    <Modal title="LinkedIn" subtitle={`Linked${when ? ` on ${when}` : ''}. Templates use these details.`} onClose={onClose}>
+      <div className="li-manage">
+        <LinkedInLogo size={40} />
+        <div>
+          <b>{d.personal?.fullName || 'Your LinkedIn profile'}</b>
+          {d.personal?.headline && <span>{d.personal.headline}</span>}
+          <span className="muted">
+            {d.experience.length} job{d.experience.length === 1 ? '' : 's'} · {d.education.length} school{d.education.length === 1 ? '' : 's'}
+            {d.skills[0]?.items ? ` · ${d.skills[0].items.split(',').length} skills` : ''}
+          </span>
+        </div>
+      </div>
+      <button className="btn btn-primary li-update" onClick={() => setUpdating(true)}>Update from a new LinkedIn PDF</button>
+      <p className="li-note">Changed jobs or added skills on LinkedIn? Update to use your latest details in templates. Resumes you’ve already made aren’t changed.</p>
+      <div className="li-unlink">
+        {confirmUnlink ? (
+          <span>
+            Templates will go back to the example details.{' '}
+            <button className="link-btn danger inline" onClick={unlink} disabled={busy}>{busy ? 'Unlinking…' : 'Yes, unlink'}</button>
+            {' · '}
+            <button className="link-btn inline" onClick={() => setConfirmUnlink(false)}>Cancel</button>
+          </span>
+        ) : (
+          <button className="link-btn subtle" onClick={() => setConfirmUnlink(true)}>Unlink LinkedIn</button>
+        )}
+      </div>
+    </Modal>
   );
 }

@@ -6,6 +6,7 @@ import { Avatar } from './ui';
 import EditProfileModal from './EditProfileModal';
 import ShareModal, { shareSite } from './ShareModal';
 import FeedbackModal from './FeedbackModal';
+import { LinkedInLogo, LinkedInManage, linkedInOf } from './LinkedIn';
 
 const I = {
   user: <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />,
@@ -55,6 +56,10 @@ export default function ProfileMenu() {
             </div>
           </div>
           <button role="menuitem" onClick={pick(() => setDialog('profile'))}><Ic d={I.user} />Edit profile</button>
+          <button role="menuitem" onClick={pick(() => setDialog('linkedin'))}>
+            <span className="pm-li"><LinkedInLogo size={17} /></span>
+            <span className="pm-two">LinkedIn<small>{linkedInOf(user) ? 'Linked · Update or unlink' : 'Not linked'}</small></span>
+          </button>
           <div className="pmenu-sep" />
           <Link role="menuitem" to="/changelog" onClick={() => setOpen(false)}><Ic d={I.spark} />What’s new</Link>
           <Link role="menuitem" to="/#faq" onClick={() => setOpen(false)}><Ic d={I.help} />Help &amp; FAQ</Link>
@@ -68,6 +73,7 @@ export default function ProfileMenu() {
 
       {dialog === 'profile' && <EditProfileModal onClose={() => setDialog(null)} />}
       {dialog === 'feedback' && <FeedbackModal onClose={() => setDialog(null)} />}
+      {dialog === 'linkedin' && <LinkedInManage onClose={() => setDialog(null)} />}
     </div>
   );
 }

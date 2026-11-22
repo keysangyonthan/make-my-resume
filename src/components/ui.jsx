@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Link } from 'react-router-dom';
 import { APP_NAME } from '../config';
 import { isFirebaseConfigured } from '../lib/firebase';
@@ -21,22 +22,44 @@ export const Icon = {
   cloud: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" /></svg>,
 };
 
+// Logo: a glossy gradient tile with a folded page, accent lines and a little sparkle.
 export function BrandMark({ size = 30 }) {
+  const id = useId().replace(/:/g, '');
   return (
     <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
       <defs>
-        <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#6366f1" /><stop offset="1" stopColor="#9333ea" /></linearGradient>
+        <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#6366f1" />
+          <stop offset="0.55" stopColor="#a855f7" />
+          <stop offset="1" stopColor="#ec4899" />
+        </linearGradient>
+        <linearGradient id={`${id}s`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.35" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="8" fill="url(#bm)" />
-      <path d="M10 8.5h8.5l4 4V23.5H10z" fill="#fff" />
-      <path d="M13 16h7M13 19h5" stroke="#6366f1" strokeWidth="1.6" strokeLinecap="round" />
+      <rect width="32" height="32" rx="9" fill={`url(#${id}g)`} />
+      <path d="M0 9a9 9 0 019-9h14a9 9 0 019 9v3.5C24 15.5 8 15.5 0 12.5z" fill={`url(#${id}s)`} />
+      <path d="M10.2 7.2h8.2l4.6 4.6v12.4a1.6 1.6 0 01-1.6 1.6H10.2a1.6 1.6 0 01-1.6-1.6V8.8a1.6 1.6 0 011.6-1.6z" fill="#fff" />
+      <path d="M18.4 7.2v3.2a1.4 1.4 0 001.4 1.4H23z" fill="#e0e7ff" />
+      <rect x="11.3" y="14.6" width="8.6" height="1.8" rx="0.9" fill={`url(#${id}g)`} />
+      <rect x="11.3" y="18.2" width="6.4" height="1.5" rx="0.75" fill="#c7d2fe" />
+      <rect x="11.3" y="21.4" width="7.6" height="1.5" rx="0.75" fill="#e0e7ff" />
+      <path d="M25.6 3.1l.75 1.85 1.85.75-1.85.75-.75 1.85-.75-1.85-1.85-.75 1.85-.75z" fill="#fde68a" />
     </svg>
   );
 }
 
+// Product name with the last word in the logo's gradient: "Make My Resume".
+export function Wordmark() {
+  const words = APP_NAME.split(' ');
+  const last = words.pop();
+  return <span className="wordmark">{words.join(' ')}{words.length ? ' ' : ''}<em>{last}</em></span>;
+}
+
 export function Brand({ to = '/' }) {
   return (
-    <Link to={to} className="brand"><BrandMark />{APP_NAME}</Link>
+    <Link to={to} className="brand"><BrandMark /><Wordmark /></Link>
   );
 }
 

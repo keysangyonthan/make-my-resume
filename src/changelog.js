@@ -3,6 +3,18 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.20',
+    date: '2026-11-22',
+    title: 'Cleaner home & a new logo',
+    tag: 'Improved',
+    items: [
+      'Once LinkedIn is linked, the big LinkedIn card disappears. Update or unlink it from your profile menu → LinkedIn.',
+      'Upload resume is hidden for now while we finish it.',
+      'A fresh new Make My Resume logo.',
+      'The “Open my LinkedIn profile” button is now easier to see.',
+    ],
+  },
+  {
     version: '1.19',
     date: '2026-11-22',
     title: 'Easier LinkedIn linking',

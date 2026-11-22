@@ -278,7 +278,9 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .li-stepcard.next { border-color: #0A66C2; box-shadow: 0 0 0 3px rgba(10,102,194,0.12); }
 .li-stephead { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); font-size: 14.5px; }
 .li-stephead .n { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12.5px; display: grid; place-items: center; flex: none; }
-.li-big { height: 44px; color: #fff; text-decoration: none; font-size: 14.5px; }
+.li-big { height: 46px; text-decoration: none; font-size: 15px; font-weight: 700; background: #0f172a !important; color: #fff !important; box-shadow: 0 6px 16px -6px rgba(15,23,42,0.5); }
+.li-big:hover { background: #000 !important; }
+.li-big svg rect { fill: #0A66C2; }
 .li-hint { margin: 0; font-size: 13px; color: var(--text); line-height: 1.5; }
 .li-two .li-drop { flex: 1; min-height: 190px; justify-content: center; color: #0A66C2; }
 .li-drop.pulse { border-color: #0A66C2; background: #f0f7ff; animation: liPulse 1.6s ease-in-out infinite; }
@@ -298,6 +300,25 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .mini-menu .hl2 { background: #e8f3ff; color: #0A66C2; font-weight: 700; }
 .mini-li { margin-bottom: 40px; }
 @media (max-width: 640px) { .li-two { grid-template-columns: 1fr; } .li-two .li-drop { min-height: 130px; } }
+
+/* Wordmark: "Make My" + gradient "Resume" */
+.wordmark { letter-spacing: -0.02em; }
+.wordmark em { font-style: normal; background: linear-gradient(90deg, #6366f1, #a855f7 55%, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-mark { filter: drop-shadow(0 2px 6px rgba(139, 92, 246, 0.35)); flex: none; }
+
+/* LinkedIn in the profile menu */
+.pm-li { width: 17px; display: inline-grid; place-items: center; }
+.pm-two { display: flex; flex-direction: column; line-height: 1.25; }
+.pm-two small { font-size: 11.5px; color: var(--muted); }
+.li-manage { display: flex; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+.li-manage > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.li-manage b { color: var(--ink); font-size: 15.5px; }
+.li-manage span { color: var(--text); font-size: 13.5px; }
+.li-update { width: 100%; margin-top: 16px; height: 44px; background: #0A66C2; }
+.li-update:hover { background: #004182; }
+.li-unlink { margin-top: 18px; padding-top: 14px; border-top: 1px solid #eef1f6; text-align: center; font-size: 13px; color: var(--muted); }
+.link-btn.subtle { color: var(--muted); font-weight: 500; display: inline; }
+.link-btn.subtle:hover { color: #dc2626; }
 
 /* ───────── Editor ───────── */
 .editor { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
