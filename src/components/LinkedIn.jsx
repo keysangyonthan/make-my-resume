@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/auth';
 import { readLinkedInPdf } from '../lib/linkedin';
 import Modal from './Modal';
@@ -46,12 +46,44 @@ function Summary({ data }) {
   );
 }
 
+// A tiny picture of a LinkedIn profile showing where "Save to PDF" is.
+function MiniLinkedIn() {
+  return (
+    <div className="mini-li" aria-hidden>
+      <div className="mini-cover" />
+      <div className="mini-av" />
+      <div className="mini-lines"><i /><i /></div>
+      <div className="mini-btns">
+        <span className="pill blue">Open to</span>
+        <span className="pill">Add section</span>
+        <span className="pill hl">Resources ▾
+          <span className="mini-menu">
+            <span className="hl2">⬇ Save to PDF</span>
+            <span>About this profile</span>
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Step-by-step "Link LinkedIn": download your profile PDF from LinkedIn, upload it, review, link.
 export function LinkedInModal({ onClose }) {
   const { updateProfile } = useAuth();
   const [state, setState] = useState({ step: 'upload' }); // upload | reading | review | saving
   const [drag, setDrag] = useState(false);
+  const [opened, setOpened] = useState(false); // clicked "Open my LinkedIn profile"
+  const [back, setBack] = useState(false); // came back to this tab after opening LinkedIn
   const fileRef = useRef(null);
+
+  // When the person comes back from the LinkedIn tab, point them at the upload box.
+  useEffect(() => {
+    if (!opened) return undefined;
+    const onBack = () => { if (document.visibilityState === 'visible') setBack(true); };
+    document.addEventListener('visibilitychange', onBack);
+    window.addEventListener('focus', onBack);
+    return () => { document.removeEventListener('visibilitychange', onBack); window.removeEventListener('focus', onBack); };
+  }, [opened]);
 
   async function read(file) {
     if (!file) return;
@@ -92,34 +124,43 @@ export function LinkedInModal({ onClose }) {
     >
       {(state.step === 'upload' || state.step === 'reading') && (
         <>
-          <ol className="li-steps">
-            <li>
-              <span className="n">1</span>
-              <div>Open your LinkedIn profile.
-                <a className="btn btn-white btn-sm li-open" href="https://www.linkedin.com/in/me/" target="_blank" rel="noopener noreferrer">
-                  <LinkedInLogo size={16} /> Open LinkedIn ↗
-                </a>
-              </div>
-            </li>
-            <li><span className="n">2</span><div>Under your name, click <b>Resources</b> (or <b>More</b>), then <b>Save to PDF</b>. LinkedIn downloads a file called <b>Profile.pdf</b>.</div></li>
-            <li><span className="n">3</span><div>Upload that file here.</div></li>
-          </ol>
-          <button
-            type="button"
-            className={`li-drop ${drag ? 'drag' : ''}`}
-            onClick={() => fileRef.current?.click()}
-            disabled={state.step === 'reading'}
-            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-            onDragLeave={() => setDrag(false)}
-            onDrop={(e) => { e.preventDefault(); setDrag(false); read(e.dataTransfer.files?.[0]); }}
-          >
-            {state.step === 'reading'
-              ? (<><div className="spinner" /><span>Reading {state.fileName}…</span></>)
-              : (<><b>Upload Profile.pdf</b><span>Click to choose, or drag it here</span></>)}
-          </button>
-          <input ref={fileRef} type="file" accept=".pdf,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; read(f); }} />
+          <div className="li-two">
+            {/* Step 1 — get the PDF */}
+            <div className={`li-stepcard ${opened ? 'done' : ''}`}>
+              <div className="li-stephead"><span className="n">{opened ? '✓' : '1'}</span>Get your PDF from LinkedIn</div>
+              <a className="btn li-btn li-big" href="https://www.linkedin.com/in/me/" target="_blank" rel="noopener noreferrer" onClick={() => setOpened(true)}>
+                <LinkedInLogo size={18} /> Open my LinkedIn profile ↗
+              </a>
+              <p className="li-hint">On your profile, click <b>Resources</b> (sometimes called <b>More</b>) → <b>Save to PDF</b>.</p>
+              <MiniLinkedIn />
+            </div>
+            {/* Step 2 — upload it */}
+            <div className={`li-stepcard ${opened ? 'next' : ''}`}>
+              <div className="li-stephead"><span className="n">2</span>Upload it here</div>
+              <button
+                type="button"
+                className={`li-drop ${drag ? 'drag' : ''} ${back ? 'pulse' : ''}`}
+                onClick={() => fileRef.current?.click()}
+                disabled={state.step === 'reading'}
+                onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={(e) => { e.preventDefault(); setDrag(false); read(e.dataTransfer.files?.[0]); }}
+              >
+                {state.step === 'reading'
+                  ? (<><div className="spinner" /><span>Reading {state.fileName}…</span></>)
+                  : (
+                    <>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+                      <b>{back ? 'Got it? Upload Profile.pdf' : 'Upload Profile.pdf'}</b>
+                      <span>It’s in your Downloads folder. Click to choose, or drag it here.</span>
+                    </>
+                  )}
+              </button>
+              <input ref={fileRef} type="file" accept=".pdf,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; read(f); }} />
+            </div>
+          </div>
           {state.error && <p className="form-error">{state.error}</p>}
-          <p className="li-note">Your file is read in your browser. We save only the details shown on the next screen, to your account. You can unlink anytime.</p>
+          <p className="li-note">LinkedIn doesn’t let other websites download your profile for you, so it takes these two quick clicks. Use a computer — LinkedIn’s phone app doesn’t have Save to PDF. Your file is read in your browser and you can unlink anytime.</p>
         </>
       )}
       {(state.step === 'review' || state.step === 'saving') && (

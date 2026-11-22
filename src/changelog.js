@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.19',
+    date: '2026-11-22',
+    title: 'Easier LinkedIn linking',
+    tag: 'Improved',
+    items: [
+      'Link LinkedIn is now two simple steps side by side: a big “Open my LinkedIn profile” button, with a picture showing exactly where Save to PDF is, and an upload box.',
+      'When you come back from LinkedIn, the upload box lights up so you know what to do next.',
+      'Starring a different resume now asks before replacing your current favourite.',
+    ],
+  },
+  {
     version: '1.18',
     date: '2026-11-22',
     title: 'Favourite resume & better LinkedIn import',

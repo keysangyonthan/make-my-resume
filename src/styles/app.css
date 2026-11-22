@@ -266,6 +266,39 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .li-banner .example-text b { color: #0c4a8a; }
 .li-banner .example-text span { color: #0A66C2; }
 
+/* Favourite confirm */
+.fav-confirm { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text); }
+
+/* LinkedIn modal — two steps side by side */
+.modal.sm:has(.li-two) { width: min(720px, 100%); }
+.li-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.li-stepcard { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.2s, box-shadow 0.2s; }
+.li-stepcard.done { border-color: #bbf7d0; }
+.li-stepcard.done .n { background: #16a34a; }
+.li-stepcard.next { border-color: #0A66C2; box-shadow: 0 0 0 3px rgba(10,102,194,0.12); }
+.li-stephead { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); font-size: 14.5px; }
+.li-stephead .n { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12.5px; display: grid; place-items: center; flex: none; }
+.li-big { height: 44px; color: #fff; text-decoration: none; font-size: 14.5px; }
+.li-hint { margin: 0; font-size: 13px; color: var(--text); line-height: 1.5; }
+.li-two .li-drop { flex: 1; min-height: 190px; justify-content: center; color: #0A66C2; }
+.li-drop.pulse { border-color: #0A66C2; background: #f0f7ff; animation: liPulse 1.6s ease-in-out infinite; }
+@keyframes liPulse { 50% { box-shadow: 0 0 0 6px rgba(10,102,194,0.15); } }
+.mini-li { position: relative; border: 1px solid #e5e7eb; border-radius: 10px; overflow: visible; background: #fff; padding: 0 10px 12px; font-size: 10px; }
+.mini-cover { height: 26px; margin: 0 -10px; border-radius: 9px 9px 0 0; background: linear-gradient(120deg, #a5c8f0, #c7d2fe); }
+.mini-av { width: 30px; height: 30px; border-radius: 50%; background: #cbd5e1; border: 2px solid #fff; margin-top: -15px; }
+.mini-lines { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 8px; }
+.mini-lines i { display: block; height: 6px; border-radius: 3px; background: #e2e8f0; width: 60%; }
+.mini-lines i + i { width: 40%; }
+.mini-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.pill { position: relative; border: 1px solid #94a3b8; border-radius: 999px; padding: 2px 8px; color: #475569; font-weight: 600; white-space: nowrap; }
+.pill.blue { background: #0A66C2; border-color: #0A66C2; color: #fff; }
+.pill.hl { border-color: #0A66C2; color: #0A66C2; box-shadow: 0 0 0 2px rgba(10,102,194,0.25); }
+.mini-menu { position: absolute; top: calc(100% + 4px); right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 18px rgba(15,23,42,0.15); display: flex; flex-direction: column; padding: 4px; z-index: 2; min-width: 112px; }
+.mini-menu span { padding: 4px 6px; border-radius: 5px; color: #475569; font-weight: 500; }
+.mini-menu .hl2 { background: #e8f3ff; color: #0A66C2; font-weight: 700; }
+.mini-li { margin-bottom: 40px; }
+@media (max-width: 640px) { .li-two { grid-template-columns: 1fr; } .li-two .li-drop { min-height: 130px; } }
+
 /* ───────── Editor ───────── */
 .editor { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 .ebar { height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #fff; border-bottom: 1px solid var(--line); z-index: 10; }

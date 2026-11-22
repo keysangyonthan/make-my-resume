@@ -9,6 +9,7 @@ import DocThumb from '../components/DocThumb';
 import { importResumeFile } from '../lib/importResume';
 import { isUploadUnlocked } from '../lib/wip';
 import WipGate from '../components/WipGate';
+import Modal from '../components/Modal';
 import { LinkedInCard, linkedInOf } from '../components/LinkedIn';
 import { resumeDataFromLinkedIn } from '../lib/linkedin';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
@@ -19,6 +20,11 @@ export default function Dashboard() {
   // One favourite resume per person, saved on their profile.
   const favId = user.profile?.favoriteResume || null;
   const [favBusy, setFavBusy] = useState(false);
+  const [replaceFav, setReplaceFav] = useState(null); // resume waiting for "replace favourite?" confirmation
+  function starClicked(r) {
+    if (favId && favId !== r.id && items?.some((x) => x.id === favId)) setReplaceFav(r);
+    else toggleFavorite(r);
+  }
   async function toggleFavorite(r) {
     if (favBusy) return;
     setFavBusy(true);
@@ -219,7 +225,7 @@ export default function Dashboard() {
               <div key={r.id} className={`rcard ${r.id === favId ? 'fav' : ''}`}>
                 <button
                   className={`star-btn ${r.id === favId ? 'on' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(r); }}
+                  onClick={(e) => { e.stopPropagation(); starClicked(r); }}
                   title={r.id === favId ? 'Remove from favourite' : 'Make this your favourite'}
                   aria-label={r.id === favId ? 'Remove from favourite' : 'Make this your favourite'}
                   aria-pressed={r.id === favId}
@@ -255,6 +261,23 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {replaceFav && (
+        <Modal
+          title="Replace your favourite?"
+          onClose={() => setReplaceFav(null)}
+          footer={(
+            <>
+              <button className="btn btn-ghost" onClick={() => setReplaceFav(null)}>Keep current</button>
+              <button className="btn btn-primary" onClick={() => { toggleFavorite(replaceFav); setReplaceFav(null); }}>⭐ Make this my favourite</button>
+            </>
+          )}
+        >
+          <p className="fav-confirm">
+            You can have <b>one favourite resume</b>. Starring <b>“{replaceFav.title || 'Untitled resume'}”</b> will remove the star from <b>“{items.find((x) => x.id === favId)?.title || 'your current favourite'}”</b>.
+          </p>
+        </Modal>
+      )}
 
       {gate && (
         <WipGate onClose={() => setGate(false)} onUnlock={() => { setUnlocked(true); setGate(false); setTimeout(() => fileRef.current?.click(), 50); }} />
