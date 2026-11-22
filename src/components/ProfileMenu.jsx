@@ -58,7 +58,7 @@ export default function ProfileMenu() {
           <button role="menuitem" onClick={pick(() => setDialog('profile'))}><Ic d={I.user} />Edit profile</button>
           <button role="menuitem" onClick={pick(() => setDialog('linkedin'))}>
             <span className="pm-li"><LinkedInLogo size={17} /></span>
-            <span className="pm-two">LinkedIn<small>{linkedInOf(user) ? 'Linked · Update or unlink' : 'Not linked'}</small></span>
+            <span className="pm-two">LinkedIn<small>{linkedInOf(user) ? 'Imported · Update or remove' : 'Import your details'}</small></span>
           </button>
           <div className="pmenu-sep" />
           <Link role="menuitem" to="/changelog" onClick={() => setOpen(false)}><Ic d={I.spark} />What’s new</Link>

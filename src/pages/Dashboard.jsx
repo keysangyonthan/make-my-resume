@@ -54,7 +54,7 @@ export default function Dashboard() {
     setCreating(template || (example ? 'example' : 'blank'));
     // Templates (and "Start from an example") open with example content to edit,
     // personalised with the user's own name and email. "Blank" starts empty.
-    // If LinkedIn is linked, templates are filled from LinkedIn instead.
+    // If LinkedIn details are imported, templates are filled from LinkedIn instead.
     const withExample = example || !!template;
     const li = linkedInOf(user);
     const r = withExample ? sampleResume() : blankResume({ name: user.name, email: user.email });

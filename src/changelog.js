@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.21',
+    date: '2026-11-22',
+    title: 'Import from LinkedIn',
+    tag: 'Improved',
+    items: [
+      '“Link LinkedIn” is now “Import from LinkedIn” — that’s what it really does: it reads the PDF you save from your LinkedIn profile.',
+      'After you import, a confirmation shows what came in: your jobs, schools and skills.',
+      'Unlink is now “Remove LinkedIn details”, in your profile menu → LinkedIn.',
+    ],
+  },
+  {
     version: '1.20',
     date: '2026-11-22',
     title: 'Cleaner home & a new logo',

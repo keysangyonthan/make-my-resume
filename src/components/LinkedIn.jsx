@@ -67,10 +67,10 @@ function MiniLinkedIn() {
   );
 }
 
-// Step-by-step "Link LinkedIn": download your profile PDF from LinkedIn, upload it, review, link.
+// Step-by-step "Import from LinkedIn": save your profile PDF on LinkedIn, upload it, review, use it.
 export function LinkedInModal({ onClose }) {
   const { updateProfile } = useAuth();
-  const [state, setState] = useState({ step: 'upload' }); // upload | reading | review | saving
+  const [state, setState] = useState({ step: 'upload' }); // upload | reading | review | saving | done
   const [drag, setDrag] = useState(false);
   const [opened, setOpened] = useState(false); // clicked "Open my LinkedIn profile"
   const [back, setBack] = useState(false); // came back to this tab after opening LinkedIn
@@ -96,11 +96,11 @@ export function LinkedInModal({ onClose }) {
     }
   }
 
-  async function link() {
+  async function save() {
     setState((s) => ({ ...s, step: 'saving' }));
     try {
       await updateProfile({ linkedin: { data: state.data, linkedAt: Date.now(), fileName: state.fileName } });
-      onClose(true);
+      setState((s) => ({ ...s, step: 'done' }));
     } catch (e) {
       setState((s) => ({ ...s, step: 'review', error: e?.code === 'permission-denied' ? 'Couldn’t save — the database rules need updating.' : 'Couldn’t save. Please try again.' }));
     }
@@ -110,14 +110,38 @@ export function LinkedInModal({ onClose }) {
     ? (
       <>
         <button className="btn btn-ghost" onClick={() => setState({ step: 'upload' })} disabled={state.step === 'saving'}>Choose another file</button>
-        <button className="btn btn-primary" onClick={link} disabled={state.step === 'saving'}>{state.step === 'saving' ? 'Linking…' : 'Link LinkedIn'}</button>
+        <button className="btn btn-primary" onClick={save} disabled={state.step === 'saving'}>{state.step === 'saving' ? 'Saving…' : 'Use these details'}</button>
       </>
     )
     : null;
 
+  // Confirmation once the details are saved.
+  if (state.step === 'done') {
+    const d = state.data;
+    const first = (d.personal?.fullName || '').split(' ')[0];
+    return (
+      <Modal title="Import complete" onClose={() => onClose(true)}>
+        <div className="li-done">
+          <div className="li-done-badge" aria-hidden>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+          </div>
+          <h3>{first ? `You’re all set, ${first}!` : 'You’re all set!'}</h3>
+          <p>Your LinkedIn details are in. Every template is now filled with your experience, education and skills.</p>
+          <div className="li-done-stats">
+            <span><b>{d.experience.length}</b> job{d.experience.length === 1 ? '' : 's'}</span>
+            <span><b>{d.education.length}</b> school{d.education.length === 1 ? '' : 's'}</span>
+            <span><b>{d.skills[0]?.items ? d.skills[0].items.split(',').length : 0}</b> skills</span>
+          </div>
+          <button className="btn btn-primary li-done-btn" onClick={() => onClose(true)}>Pick a template</button>
+          <p className="li-note">Update or remove these details anytime from your profile menu → LinkedIn.</p>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
-      title="Link your LinkedIn"
+      title="Import from LinkedIn"
       subtitle="Fill every template with your own experience, education and skills."
       onClose={() => onClose(false)}
       footer={footer}
@@ -160,7 +184,7 @@ export function LinkedInModal({ onClose }) {
             </div>
           </div>
           {state.error && <p className="form-error">{state.error}</p>}
-          <p className="li-note">LinkedIn doesn’t let other websites download your profile for you, so it takes these two quick clicks. Use a computer — LinkedIn’s phone app doesn’t have Save to PDF. Your file is read in your browser and you can unlink anytime.</p>
+          <p className="li-note">LinkedIn doesn’t let other websites download your profile for you, so it takes these two quick clicks. Use a computer — LinkedIn’s phone app doesn’t have Save to PDF. Your file is read in your browser and you can remove these details anytime.</p>
         </>
       )}
       {(state.step === 'review' || state.step === 'saving') && (
@@ -174,28 +198,34 @@ export function LinkedInModal({ onClose }) {
   );
 }
 
-// Card on the Your resumes page — shown only until LinkedIn is linked.
-// Afterwards, Update / Unlink live in the profile menu (LinkedInManage).
+// Card on the Your resumes page — shown only until LinkedIn details are imported.
+// Afterwards, Update / Remove live in the profile menu (LinkedInManage).
 export function LinkedInCard() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  if (linkedInOf(user)) return null;
+  const imported = linkedInOf(user);
+  // The window stays in the same place in the tree so its "You're all set" confirmation
+  // survives the card disappearing once the details are saved.
   return (
-    <section className="li-card">
-      <LinkedInLogo size={36} />
-      <div className="li-card-text">
-        <b>Link your LinkedIn</b>
-        <span>Fill every template with your own experience, education and skills — in about a minute.</span>
-      </div>
-      <div className="li-card-actions">
-        <button className="btn btn-primary btn-sm li-btn" onClick={() => setOpen(true)}>Link LinkedIn</button>
-      </div>
+    <>
+      {!imported && (
+        <section className="li-card">
+          <LinkedInLogo size={36} />
+          <div className="li-card-text">
+            <b>Fill templates from your LinkedIn</b>
+            <span>Upload your LinkedIn profile PDF and every template fills in with your experience, education and skills — in about a minute.</span>
+          </div>
+          <div className="li-card-actions">
+            <button className="btn btn-primary btn-sm li-btn" onClick={() => setOpen(true)}>Import from LinkedIn</button>
+          </div>
+        </section>
+      )}
       {open && <LinkedInModal onClose={() => setOpen(false)} />}
-    </section>
+    </>
   );
 }
 
-// "LinkedIn" window from the profile menu: see what's linked, update it, or (quietly) unlink.
+// "LinkedIn" window from the profile menu: see what's imported, update it, or (quietly) remove it.
 export function LinkedInManage({ onClose }) {
   const { user, updateProfile } = useAuth();
   const li = linkedInOf(user);
@@ -214,7 +244,7 @@ export function LinkedInManage({ onClose }) {
   const when = li.linkedAt ? new Date(li.linkedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
   return (
-    <Modal title="LinkedIn" subtitle={`Linked${when ? ` on ${when}` : ''}. Templates use these details.`} onClose={onClose}>
+    <Modal title="LinkedIn" subtitle={`Imported${when ? ` on ${when}` : ''} from your LinkedIn PDF. Templates use these details.`} onClose={onClose}>
       <div className="li-manage">
         <LinkedInLogo size={40} />
         <div>
@@ -232,12 +262,12 @@ export function LinkedInManage({ onClose }) {
         {confirmUnlink ? (
           <span>
             Templates will go back to the example details.{' '}
-            <button className="link-btn danger inline" onClick={unlink} disabled={busy}>{busy ? 'Unlinking…' : 'Yes, unlink'}</button>
+            <button className="link-btn danger inline" onClick={unlink} disabled={busy}>{busy ? 'Removing…' : 'Yes, remove'}</button>
             {' · '}
             <button className="link-btn inline" onClick={() => setConfirmUnlink(false)}>Cancel</button>
           </span>
         ) : (
-          <button className="link-btn subtle" onClick={() => setConfirmUnlink(true)}>Unlink LinkedIn</button>
+          <button className="link-btn subtle" onClick={() => setConfirmUnlink(true)}>Remove LinkedIn details</button>
         )}
       </div>
     </Modal>

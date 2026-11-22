@@ -11,7 +11,7 @@ import FeedbackModal from '../components/FeedbackModal';
 import { LinkedInLogo, linkedInOf } from '../components/LinkedIn';
 import { resumeDataFromLinkedIn } from '../lib/linkedin';
 
-// The example resume shown on this page — the visitor's own LinkedIn details when they've linked it.
+// The example resume shown on this page — the visitor's own LinkedIn details when they've imported them.
 function useShowcaseResume() {
   const { user } = useAuth();
   const li = linkedInOf(user);
@@ -283,7 +283,7 @@ export default function Landing() {
         <div className="ap-head ap-reveal">
           <p className="ap-kicker"><LinkedInLogo size={20} /> New</p>
           <h2>Your LinkedIn.<br />In every template.</h2>
-          <p>Link your LinkedIn once and every template fills itself in with your experience, education and skills. No retyping.</p>
+          <p>Import your LinkedIn once and every template fills itself in with your experience, education and skills. No retyping.</p>
         </div>
         <div className="ap-li-flow ap-reveal">
           <div className="ap-li-profile" aria-hidden>
@@ -308,8 +308,8 @@ export default function Landing() {
           <div><span>3</span>Pick any template. It’s already filled in.</div>
         </div>
         <div className="ap-li-cta ap-reveal">
-          <CTA label="Link my LinkedIn" ctx={ctx} />
-          <p>Unlink anytime. Your existing resumes are never changed.</p>
+          <CTA label="Import from LinkedIn" ctx={ctx} />
+          <p>Remove it anytime. Your existing resumes are never changed.</p>
         </div>
       </section>
 
@@ -337,7 +337,7 @@ export default function Landing() {
         <div className="ap-head ap-reveal"><h2>Questions? Answers.</h2></div>
         <div className="ap-faq ap-reveal">
           <details><summary>Is it really free?</summary><p>Yes. Building, saving and exporting resumes is free, with no watermarks and no download limits.</p></details>
-          <details><summary>Can I fill my resume from LinkedIn?</summary><p>Yes. On LinkedIn, open your profile and choose Resources → Save to PDF, then upload that file on Your resumes. Every template fills in with your experience, education and skills. You can unlink anytime.</p></details>
+          <details><summary>Can I fill my resume from LinkedIn?</summary><p>Yes. On LinkedIn, open your profile and choose Resources → Save to PDF, then upload that file on Your resumes. Every template fills in with your experience, education and skills. You can remove these details anytime.</p></details>
           <details><summary>Can I upload the resume I already have?</summary><p>Coming soon! We’re building a way to upload a PDF or Word file and edit it directly on the page, like a document. For now, pick a template and fill in the form — it only takes a few minutes.</p></details>
           <details><summary>Can my resume be more than one page?</summary><p>Yes. Pages break cleanly on their own. To fit everything on one page, open “Customise look” and lower the font size or choose Compact spacing.</p></details>
           <details><summary>Will applicant tracking systems read my PDF?</summary><p>Yes. The PDF contains real text, not an image, so ATS software and recruiters can search and copy it.</p></details>
