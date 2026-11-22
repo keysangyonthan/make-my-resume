@@ -221,6 +221,41 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .example-text span { color: #4338ca; font-size: 13px; line-height: 1.45; }
 .example-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* ───────── LinkedIn ───────── */
+.li-card { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 26px; }
+.li-card.linked { background: #f0f7ff; border-color: #bfdbfe; }
+.li-card-text { flex: 1 1 280px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.li-card-text b { color: var(--ink); font-size: 15px; }
+.li-card-text span { color: var(--muted); font-size: 13.5px; }
+.li-card-actions { display: flex; gap: 8px; }
+.li-btn { background: #0A66C2; }
+.li-btn:hover { background: #004182; }
+.danger-text { color: #dc2626 !important; }
+.li-tag { font-size: 12px; font-weight: 600; color: #0A66C2; background: #e8f3ff; border-radius: 999px; padding: 3px 9px; }
+.li-steps { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.li-steps li { display: flex; gap: 12px; font-size: 14.5px; color: var(--text); line-height: 1.5; }
+.li-steps .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 12.5px; font-weight: 700; display: grid; place-items: center; margin-top: 1px; }
+.li-open { margin-top: 8px; display: flex; width: fit-content; gap: 6px; text-decoration: none; }
+.li-drop { width: 100%; border: 2px dashed #cbd5e1; border-radius: 14px; background: #f8fafc; padding: 22px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text); font-size: 14px; }
+.li-drop b { color: #0A66C2; font-size: 15px; }
+.li-drop span { color: var(--muted); font-size: 13px; }
+.li-drop:hover, .li-drop.drag { border-color: #0A66C2; background: #f0f7ff; }
+.li-drop .spinner { width: 26px; height: 26px; margin-bottom: 6px; }
+.li-note { font-size: 12px; color: var(--muted); margin: 12px 0 0; line-height: 1.5; }
+.li-lead { margin: 0 0 12px; color: var(--text); font-size: 14.5px; }
+.li-review { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.li-person { padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.li-person b { color: var(--ink); font-size: 16px; }
+.li-person span { color: var(--text); font-size: 13.5px; }
+.li-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 12px 14px; }
+.li-grid h4 { margin: 0 0 4px; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.li-grid h4 em { font-style: normal; background: #e8f3ff; color: #0A66C2; border-radius: 999px; padding: 0 7px; font-size: 11.5px; }
+.li-grid ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--text); line-height: 1.55; }
+.muted { color: var(--muted); font-size: 12.5px; }
+.li-banner { background: #f0f7ff; border-color: #bfdbfe; }
+.li-banner .example-text b { color: #0c4a8a; }
+.li-banner .example-text span { color: #0A66C2; }
+
 /* ───────── Editor ───────── */
 .editor { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 .ebar { height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #fff; border-bottom: 1px solid var(--line); z-index: 10; }

@@ -8,6 +8,19 @@ import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
 import FeedbackModal from '../components/FeedbackModal';
+import { linkedInOf } from '../components/LinkedIn';
+import { resumeDataFromLinkedIn } from '../lib/linkedin';
+
+// The example resume shown on this page — the visitor's own LinkedIn details when they've linked it.
+function useShowcaseResume() {
+  const { user } = useAuth();
+  const li = linkedInOf(user);
+  return useMemo(() => {
+    const r = sampleResume();
+    if (li) r.data = resumeDataFromLinkedIn(li.data);
+    return r;
+  }, [li]);
+}
 import '../styles/landing.css';
 
 function useStart() {
@@ -57,7 +70,7 @@ function CTA({ label, light = false, ctx }) {
 
 // Three styles fanned out like paper on a desk.
 function HeroFan() {
-  const base = useMemo(() => sampleResume(), []);
+  const base = useShowcaseResume();
   return (
     <div className="ap-fan" aria-hidden>
       <div className="ap-sheet left"><ResumePages resume={{ ...base, template: 'classic', accent: '#111827' }} width={300} maxPages={1} gap={0} /></div>
@@ -137,7 +150,7 @@ function LiveDemo() {
 }
 
 function StyleStrip() {
-  const base = useMemo(() => sampleResume(), []);
+  const base = useShowcaseResume();
   return (
     <div className="ap-strip" tabIndex={0} aria-label="Resume styles">
       {TEMPLATE_KEYS.map((k) => (

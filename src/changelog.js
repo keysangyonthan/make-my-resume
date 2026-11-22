@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.17',
+    date: '2026-11-22',
+    title: 'Link your LinkedIn',
+    tag: 'New',
+    items: [
+      'Link your LinkedIn from the Your resumes page: save your profile as a PDF on LinkedIn and upload it — we read your experience, education, skills, summary and contact details.',
+      'Once linked, every template preview shows your own details, and new resumes made from a template start filled in from LinkedIn.',
+      'Review what we found before linking. Update or unlink anytime — your existing resumes are never changed.',
+    ],
+  },
+  {
     version: '1.16',
     date: '2026-11-21',
     title: 'Templates start filled in',

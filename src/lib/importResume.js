@@ -81,21 +81,19 @@ function textToHtml(text) {
 // Bullet characters, including the private-use symbols Word uses for its bullet fonts (Symbol/Wingdings).
 const BULLET = /^\s*([•●▪◦‣∙·■□➢➤►▶✓✔\-–—*\uF000-\uF0FF])\s*/;
 
-async function pdfToHtml(arrayBuffer, warnings) {
+// Reads every text piece of a PDF with its position, size and weight. Shared with the LinkedIn reader.
+export async function readPdfPages(arrayBuffer) {
   const pdfjs = await import('pdfjs-dist');
   const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const doc = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer), isEvalSupported: false, fontExtraProperties: true }).promise;
-  const allLines = [];
-  let twoColumnHint = false;
-
+  const pages = [];
   for (let p = 1; p <= doc.numPages; p += 1) {
     const page = await doc.getPage(p);
     await page.getOperatorList(); // makes font names available
     const content = await page.getTextContent();
-    const { height: pageH, width: pageW } = page.getViewport({ scale: 1 }); // eslint-disable-line no-unused-vars
-
+    const { height: pageH, width: pageW } = page.getViewport({ scale: 1 });
     const items = content.items
       .filter((it) => typeof it.str === 'string' && it.str.length)
       .map((it) => {
@@ -113,7 +111,17 @@ async function pdfToHtml(arrayBuffer, warnings) {
           italic: /italic|oblique/i.test(fontName + family),
         };
       });
+    pages.push({ number: p, items, pageW, pageH });
+  }
+  return pages;
+}
 
+async function pdfToHtml(arrayBuffer, warnings) {
+  const pdfPages = await readPdfPages(arrayBuffer);
+  const allLines = [];
+  let twoColumnHint = false;
+
+  for (const { number: p, items, pageW } of pdfPages) {
     // Two-column layouts: find a vertical gutter and read each column separately.
     let groups = [items];
     const split = findColumnSplit(items, pageW);
@@ -147,7 +155,7 @@ async function pdfToHtml(arrayBuffer, warnings) {
 }
 
 // Group text pieces into lines (same baseline), top to bottom.
-function groupLines(items) {
+export function groupLines(items) {
   const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
   const lines = [];
   sorted.forEach((it) => {
@@ -159,7 +167,7 @@ function groupLines(items) {
 
 // Looks for an x position (between 20% and 65% of the page width) where many lines
 // have a large empty gap — the space between two columns.
-function findColumnSplit(items, pageW) {
+export function findColumnSplit(items, pageW) {
   const lines = groupLines(items.filter((i) => i.str.trim()));
   if (lines.length < 12) return null;
   const starts = [];
@@ -179,7 +187,7 @@ function findColumnSplit(items, pageW) {
   return Math.min(...starts.filter((x) => Math.abs(x - median) < 12)) - 2;
 }
 
-function buildLine(line) {
+export function buildLine(line) {
   // Whitespace-only pieces often stretch across big gaps (e.g. to a right-aligned date); ignore them.
   const visible = line.items.filter((i) => i.str.trim());
   const items = (visible.length ? visible : line.items).sort((a, b) => a.x - b.x);

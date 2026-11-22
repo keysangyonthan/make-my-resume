@@ -9,6 +9,8 @@ import DocThumb from '../components/DocThumb';
 import { importResumeFile } from '../lib/importResume';
 import { isUploadUnlocked } from '../lib/wip';
 import WipGate from '../components/WipGate';
+import { LinkedInCard, linkedInOf } from '../components/LinkedIn';
+import { resumeDataFromLinkedIn } from '../lib/linkedin';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
@@ -37,9 +39,16 @@ export default function Dashboard() {
     setCreating(template || (example ? 'example' : 'blank'));
     // Templates (and "Start from an example") open with example content to edit,
     // personalised with the user's own name and email. "Blank" starts empty.
+    // If LinkedIn is linked, templates are filled from LinkedIn instead.
     const withExample = example || !!template;
+    const li = linkedInOf(user);
     const r = withExample ? sampleResume() : blankResume({ name: user.name, email: user.email });
-    if (withExample) {
+    if (template && li) {
+      r.data = resumeDataFromLinkedIn(li.data);
+      if (!r.data.personal.fullName && user.name) r.data.personal.fullName = user.name;
+      if (!r.data.personal.email && user.email) r.data.personal.email = user.email;
+      r.notice = 'linkedin';
+    } else if (withExample) {
       if (user.name) r.data.personal.fullName = user.name;
       if (user.email) r.data.personal.email = user.email;
       r.exampleContent = true;
@@ -55,11 +64,13 @@ export default function Dashboard() {
   }
 
   // Template previews use example content with the user's own name where we have it.
+  const linked = linkedInOf(user);
   const preview = useMemo(() => {
     const r = sampleResume();
-    if (user.name) r.data.personal.fullName = user.name;
+    if (linked) r.data = resumeDataFromLinkedIn(linked.data);
+    else if (user.name) r.data.personal.fullName = user.name;
     return r;
-  }, [user.name]);
+  }, [user.name, linked]);
   const stripRef = useRef(null);
   const fileRef = useRef(null);
   const [importing, setImporting] = useState(null); // null | { name } | { error }
@@ -129,9 +140,11 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <LinkedInCard />
+
         <section className="dash-section">
           <div className="dash-section-head">
-            <h2>Start a new resume</h2>
+            <h2>Start a new resume{linked && <span className="li-tag">Using your LinkedIn</span>}</h2>
             <div className="strip-nav">
               <button className="icon-btn" onClick={() => scrollStrip(-1)} aria-label="Scroll templates left">{Icon.back}</button>
               <button className="icon-btn" onClick={() => scrollStrip(1)} aria-label="Scroll templates right" style={{ transform: 'scaleX(-1)' }}>{Icon.back}</button>

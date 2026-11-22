@@ -403,6 +403,17 @@ export default function Editor() {
       <div className="ebody" data-tab={tab}>
         <div className="eform">
           <div className="eform-in">
+            {resume.notice === 'linkedin' && (
+              <div className="example-banner li-banner" role="note">
+                <div className="example-text">
+                  <b>Filled in from your LinkedIn profile.</b>
+                  <span>Check the details and make it yours — LinkedIn’s PDF doesn’t include things like your phone number.</span>
+                </div>
+                <div className="example-actions">
+                  <button className="btn btn-white btn-sm" onClick={() => setMeta({ notice: null })}>Got it</button>
+                </div>
+              </div>
+            )}
             {resume.exampleContent && (
               <div className="example-banner" role="note">
                 <div className="example-text">
