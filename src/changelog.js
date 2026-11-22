@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.18',
+    date: '2026-11-22',
+    title: 'Favourite resume & better LinkedIn import',
+    tag: 'New',
+    items: [
+      'Star your favourite resume — it stays at the top of Your resumes. One favourite at a time.',
+      'LinkedIn import: schools without a degree no longer show a stray dot, “Page 2 of 3” lines are ignored, and long certifications aren’t split in two.',
+      'The home page now shows off Link LinkedIn.',
+    ],
+  },
+  {
     version: '1.17',
     date: '2026-11-22',
     title: 'Link your LinkedIn',

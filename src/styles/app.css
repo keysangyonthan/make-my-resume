@@ -221,6 +221,16 @@ footer.foot { border-top: 1px solid var(--line); padding: 28px 24px; text-align:
 .example-text span { color: #4338ca; font-size: 13px; line-height: 1.45; }
 .example-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Favourite resume star */
+.star-btn { position: absolute; top: 10px; right: 10px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,0.92); color: #94a3b8; display: grid; place-items: center; opacity: 0; transition: opacity 0.15s, color 0.15s, transform 0.1s; box-shadow: 0 2px 6px rgba(15,23,42,0.1); }
+.rcard:hover .star-btn, .star-btn:focus-visible, .star-btn.on { opacity: 1; }
+.star-btn:hover { color: #f59e0b; }
+.star-btn:active { transform: scale(0.9); }
+.star-btn.on { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+@media (hover: none) { .star-btn { opacity: 1; } }
+.fav-badge { position: absolute; top: 14px; left: 12px; z-index: 3; background: #f59e0b; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.02em; }
+.rcard.fav { border-color: #fcd34d; box-shadow: 0 0 0 1px #fcd34d; }
+
 /* ───────── LinkedIn ───────── */
 .li-card { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 26px; }
 .li-card.linked { background: #f0f7ff; border-color: #bfdbfe; }

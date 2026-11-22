@@ -8,7 +8,7 @@ import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
 import FeedbackModal from '../components/FeedbackModal';
-import { linkedInOf } from '../components/LinkedIn';
+import { LinkedInLogo, linkedInOf } from '../components/LinkedIn';
 import { resumeDataFromLinkedIn } from '../lib/linkedin';
 
 // The example resume shown on this page — the visitor's own LinkedIn details when they've linked it.
@@ -149,6 +149,18 @@ function LiveDemo() {
   );
 }
 
+// Three styles, filled with the same person's details, fanned on the dark LinkedIn section.
+function LinkedInThumbs() {
+  const base = useShowcaseResume();
+  return (
+    <div className="ap-li-thumbs" aria-hidden>
+      {['modern', 'sidebar', 'classic'].map((k, i) => (
+        <div key={k} className={`ap-li-thumb t${i}`}><ResumePages resume={{ ...base, template: k }} width={170} maxPages={1} gap={0} /></div>
+      ))}
+    </div>
+  );
+}
+
 function StyleStrip() {
   const base = useShowcaseResume();
   return (
@@ -266,6 +278,41 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* LinkedIn */}
+      <section className="ap-section ap-dark" id="linkedin">
+        <div className="ap-head ap-reveal">
+          <p className="ap-kicker"><LinkedInLogo size={20} /> New</p>
+          <h2>Your LinkedIn.<br />In every template.</h2>
+          <p>Link your LinkedIn once and every template fills itself in with your experience, education and skills. No retyping.</p>
+        </div>
+        <div className="ap-li-flow ap-reveal">
+          <div className="ap-li-profile" aria-hidden>
+            <div className="ap-li-cover" />
+            <div className="ap-li-avatar">PS</div>
+            <b>Priya Sharma</b>
+            <span>Senior Product Designer · Bengaluru</span>
+            <div className="ap-li-rows">
+              <div><i>Experience</i>Lumen Labs · Kite Payments · Pixelcraft</div>
+              <div><i>Education</i>National Institute of Design</div>
+              <div><i>Skills</i>Product design · Prototyping · Figma</div>
+            </div>
+          </div>
+          <div className="ap-li-arrow" aria-hidden>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </div>
+          <LinkedInThumbs />
+        </div>
+        <div className="ap-li-steps ap-reveal">
+          <div><span>1</span>On LinkedIn, save your profile as a PDF</div>
+          <div><span>2</span>Upload it — we read it in your browser</div>
+          <div><span>3</span>Pick any template. It’s already filled in.</div>
+        </div>
+        <div className="ap-li-cta ap-reveal">
+          <CTA label="Link my LinkedIn" ctx={ctx} />
+          <p>Unlink anytime. Your existing resumes are never changed.</p>
+        </div>
+      </section>
+
       {/* Styles */}
       <section className="ap-section gray" id="styles">
         <div className="ap-head ap-reveal">
@@ -290,6 +337,7 @@ export default function Landing() {
         <div className="ap-head ap-reveal"><h2>Questions? Answers.</h2></div>
         <div className="ap-faq ap-reveal">
           <details><summary>Is it really free?</summary><p>Yes. Building, saving and exporting resumes is free, with no watermarks and no download limits.</p></details>
+          <details><summary>Can I fill my resume from LinkedIn?</summary><p>Yes. On LinkedIn, open your profile and choose Resources → Save to PDF, then upload that file on Your resumes. Every template fills in with your experience, education and skills. You can unlink anytime.</p></details>
           <details><summary>Can I upload the resume I already have?</summary><p>Coming soon! We’re building a way to upload a PDF or Word file and edit it directly on the page, like a document. For now, pick a template and fill in the form — it only takes a few minutes.</p></details>
           <details><summary>Can my resume be more than one page?</summary><p>Yes. Pages break cleanly on their own. To fit everything on one page, open “Customise look” and lower the font size or choose Compact spacing.</p></details>
           <details><summary>Will applicant tracking systems read my PDF?</summary><p>Yes. The PDF contains real text, not an image, so ATS software and recruiters can search and copy it.</p></details>

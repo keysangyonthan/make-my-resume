@@ -67,7 +67,9 @@ export async function readLinkedInPdf(file) {
       }
     }
     const isSide = (i) => splitX != null && i.x < splitX;
-    const toLines = (arr) => groupLines(arr).map((l) => ({ ...buildLine(l), page: number }));
+    const toLines = (arr) => groupLines(arr)
+      .map((l) => ({ ...buildLine(l), page: number }))
+      .filter((l) => !FOOTER.test(clean(l.text)) && !/^[\s·.•,|-]*$/.test(l.text));
     side.push(...toLines(visible.filter(isSide)));
     main.push(...toLines(visible.filter((i) => !isSide(i))));
   });
@@ -96,7 +98,28 @@ export async function readLinkedInPdf(file) {
     .replace(/(?:www\.)?linkedin\.com\/in\/\S+/gi, '')
     .match(/((?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/\S*)?)\s*\((?:Portfolio|Personal|Company|Blog|Other|RSS Feed)\)/i);
   const website = siteMatch ? siteMatch[1] : '';
-  const sideList = (key) => (sideSections[key] || []).map((l) => clean(l.text)).filter(Boolean);
+  // Sidebar lists (skills, languages, certifications…): long entries wrap onto a second line.
+  // Wrapped lines sit closer together than separate entries; if the spacing doesn't tell them
+  // apart, a line that ran almost to the column's edge is treated as wrapped.
+  const sideRight = Math.max(0, ...side.map((l) => l.right));
+  const sideList = (key) => {
+    const arr = (sideSections[key] || []).filter((l) => clean(l.text));
+    const gaps = arr.slice(1).map((l, i) => (l.page === arr[i].page ? l.y - arr[i].y : Infinity)).filter((g) => g !== Infinity);
+    const minGap = gaps.length ? Math.min(...gaps) : 0;
+    const spacingTells = gaps.some((g) => g > minGap + 1.5);
+    const out = [];
+    arr.forEach((l, i) => {
+      const t = clean(l.text);
+      const prev = arr[i - 1];
+      let wrapped = false;
+      if (prev && prev.page === l.page) {
+        const gap = l.y - prev.y;
+        wrapped = spacingTells ? gap <= minGap + 1 : (gap < l.size * 1.6 && prev.right > sideRight * 0.9);
+      }
+      if (wrapped && out.length) out[out.length - 1] += ` ${t}`; else out.push(t);
+    });
+    return out;
+  };
 
   // ── Main column ──
   const firstHeading = main.findIndex((l) => MAIN_HEADINGS.includes(clean(l.text).toLowerCase()));
@@ -214,9 +237,10 @@ function parseEducation(lines) {
     const t = clean(l.text);
     const years = t.match(/\(\s*(?:[A-Za-z]+\s+)?(\d{4})\s*[-–—]\s*(?:[A-Za-z]+\s+)?(\d{4}|Present)?\s*\)\s*$/i);
     if (t.includes('·') || years) {
-      // "Bachelor of Technology - BTech, Computer Science · (2016 - 2020)"
+      // "Bachelor of Technology - BTech, Computer Science · (2016 - 2020)" — or just "· (2017 - 2018)"
       let degree = clean(t.split('·')[0].replace(/\(.*\)\s*$/, ''));
-      if (!degree && years) degree = clean(t.replace(years[0], ''));
+      if (!degree && years && !t.includes('·')) degree = clean(t.replace(years[0], ''));
+      degree = degree.replace(/^[\s·.,•|-]+|[\s·.,•|-]+$/g, '');
       out.push({
         id: newId(),
         degree,

@@ -15,7 +15,15 @@ import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+  // One favourite resume per person, saved on their profile.
+  const favId = user.profile?.favoriteResume || null;
+  const [favBusy, setFavBusy] = useState(false);
+  async function toggleFavorite(r) {
+    if (favBusy) return;
+    setFavBusy(true);
+    try { await updateProfile({ favoriteResume: favId === r.id ? null : r.id }); } finally { setFavBusy(false); }
+  }
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -114,6 +122,7 @@ export default function Dashboard() {
 
   async function remove(r) {
     await deleteResume(user.uid, r.id);
+    if (favId === r.id) updateProfile({ favoriteResume: null }).catch(() => {});
     setItems((xs) => xs.filter((x) => x.id !== r.id));
   }
 
@@ -206,8 +215,18 @@ export default function Dashboard() {
                 <small>Edit a filled-in resume</small>
               </button>
             )}
-            {items.map((r) => (
-              <div key={r.id} className="rcard">
+            {[...items].sort((a, b) => (b.id === favId) - (a.id === favId)).map((r) => (
+              <div key={r.id} className={`rcard ${r.id === favId ? 'fav' : ''}`}>
+                <button
+                  className={`star-btn ${r.id === favId ? 'on' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(r); }}
+                  title={r.id === favId ? 'Remove from favourite' : 'Make this your favourite'}
+                  aria-label={r.id === favId ? 'Remove from favourite' : 'Make this your favourite'}
+                  aria-pressed={r.id === favId}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill={r.id === favId ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M12 2.8l2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 17.36l-5.7 3 1.09-6.35-4.62-4.5 6.38-.93z" /></svg>
+                </button>
+                {r.id === favId && <span className="fav-badge">Favourite</span>}
                 <div className="thumbwrap" onClick={() => navigate(openPath(r))}>
                   {r.kind === 'document'
                     ? <DocThumb html={r.html} font={r.font} width={190} />
