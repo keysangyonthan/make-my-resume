@@ -3,7 +3,7 @@
 import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
-import { Plugin } from '@tiptap/pm/state';
+import { Plugin, TextSelection } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import LinkExt from '@tiptap/extension-link';
@@ -17,26 +17,92 @@ const emit = () => subs.forEach((f) => f());
 const setActive = (a) => { if (active?.editor !== a?.editor || active?.mode !== a?.mode) { active = a; emit(); } };
 const useActive = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => active);
 
-// Easy ways out of a list:
-//  • Enter on an empty bullet (built in), Esc, or Backspace at the start of a bullet
-//  • there is always an empty line under a list at the end, so you can click below it
+// Leaving a list one step at a time (Enter or Backspace on an empty line):
+//   empty bullet          → plain line, still indented under the item above
+//   empty indented line   → one level further out … until you're out of the list
+// Backspace at the start of a bullet removes the bullet but keeps the indent.
+// Esc leaves the list completely. A list at the end always has an empty line under it.
 const isList = (n) => n && (n.type.name === 'bulletList' || n.type.name === 'orderedList');
 const ListExit = Extension.create({
   name: 'listExit',
+  priority: 1000, // before the built-in list keys
   addKeyboardShortcuts() {
-    const inItem = () => this.editor.isActive('listItem');
+    const ed = this.editor;
+    // Where the cursor is, if it's inside a list item.
+    const where = () => {
+      const { $from, empty } = ed.state.selection;
+      if (!empty || $from.depth < 3 || $from.node(-1).type.name !== 'listItem') return null;
+      return {
+        $from,
+        para: $from.parent,
+        li: $from.node(-1),
+        liPos: $from.before(-1),
+        inLi: $from.index(-1), // 0 = the bullet's own line
+        list: $from.node(-2),
+        inList: $from.index(-2),
+      };
+    };
+    // Move content from this item into the item above (it loses its bullet, keeps the indent).
+    const intoPrevious = (w, content) => {
+      const { state, view } = ed;
+      const prev = w.list.child(w.inList - 1);
+      const prevEnd = w.liPos - 1; // just inside the end of the previous item
+      const tr = state.tr.delete(w.liPos, w.liPos + w.li.nodeSize);
+      tr.insert(prevEnd, content);
+      tr.setSelection(TextSelection.create(tr.doc, prevEnd + 1));
+      view.dispatch(tr.scrollIntoView());
+      return !!prev;
+    };
+    // Move an indented line one level out (or out of the list at the top level).
+    const stepOut = (w) => {
+      const { state, view } = ed;
+      const at = w.$from.before();
+      const afterList = w.$from.after(-2);
+      const tr = state.tr.delete(at, at + w.para.nodeSize);
+      const pos = tr.mapping.map(afterList);
+      tr.insert(pos, w.para); // keeps any text on the line
+      tr.setSelection(TextSelection.create(tr.doc, pos + 1 + w.$from.parentOffset));
+      view.dispatch(tr.scrollIntoView());
+      return true;
+    };
     return {
-      Escape: () => {
-        if (!inItem()) return false;
-        let guard = 0;
-        while (this.editor.isActive('listItem') && guard++ < 8) { if (!this.editor.commands.liftListItem('listItem')) break; }
-        return true;
+      Enter: () => {
+        const w = where();
+        if (!w) return false;
+        const empty = w.para.content.size === 0;
+        if (w.inLi === 0) {
+          // Empty bullet with an item above it → plain indented line under that item.
+          if (empty && w.li.childCount === 1 && w.inList > 0) return intoPrevious(w, ed.state.schema.nodes.paragraph.create());
+          return false; // normal list behaviour
+        }
+        // On an indented line: Enter makes another indented line; on an empty one, step out a level.
+        return empty ? stepOut(w) : ed.commands.splitBlock();
       },
       Backspace: () => {
-        const { $from, empty } = this.editor.state.selection;
-        if (!empty || $from.parentOffset !== 0 || $from.depth < 2) return false;
-        if ($from.node(-1).type.name !== 'listItem' || $from.index(-1) !== 0) return false;
-        return this.editor.commands.liftListItem('listItem');
+        const w = where();
+        if (!w || w.$from.parentOffset !== 0) return false;
+        if (w.inLi === 0) {
+          if (w.inList > 0) return intoPrevious(w, w.li.content); // drop the bullet, keep the indent
+          return ed.commands.liftListItem('listItem');
+        }
+        return w.para.content.size === 0 ? stepOut(w) : false;
+      },
+      // On an indented line, Tab turns it into a sub-item and Shift+Tab moves it out a level.
+      Tab: () => {
+        const w = where();
+        if (!w || w.inLi === 0) return false;
+        return ed.commands.wrapInList(w.list.type.name);
+      },
+      'Shift-Tab': () => {
+        const w = where();
+        if (!w || w.inLi === 0) return false;
+        return stepOut(w);
+      },
+      Escape: () => {
+        if (!ed.isActive('listItem')) return false;
+        let guard = 0;
+        while (ed.isActive('listItem') && guard++ < 10) { if (!ed.commands.liftListItem('listItem')) break; }
+        return true;
       },
     };
   },
@@ -168,6 +234,12 @@ export function FormatBar() {
   const on = (name) => !!editor?.isActive(name);
   const run = (fn) => (e) => { e.preventDefault(); if (editor) fn(editor.chain().focus()).run(); };
   const listOk = a?.mode === 'rich';
+  // Cursor on an indented line inside a list item (not the bullet's own line)?
+  const onIndentedLine = () => {
+    const { $from } = editor.state.selection;
+    return $from.depth >= 3 && $from.node(-1).type.name === 'listItem' && $from.index(-1) > 0;
+  };
+  const listCmd = (type) => run((c) => (onIndentedLine() ? c.wrapInList(type) : type === 'bulletList' ? c.toggleBulletList() : c.toggleOrderedList()));
   const inList = on('bulletList') || on('orderedList');
 
   const openLink = (e) => {
@@ -218,10 +290,10 @@ export function FormatBar() {
           <Btn name="italic" icon={I.italic} title={`Italic (${key('I')})`} onDown={run((c) => c.toggleItalic())} />
           <Btn name="underline" icon={I.underline} title={`Underline (${key('U')})`} onDown={run((c) => c.toggleUnderline())} />
           <span className="fbar-sep" />
-          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list — press Enter twice or Esc to end it' : LIST_OFF}
-            disabled={!listOk} onDown={run((c) => c.toggleBulletList())} />
-          <Btn name={listOk ? 'orderedList' : null} icon={I.ol} title={listOk ? 'Numbered list — press Enter twice or Esc to end it' : LIST_OFF}
-            disabled={!listOk} onDown={run((c) => c.toggleOrderedList())} />
+          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list — Enter on an empty bullet steps out one level, Esc ends the list' : LIST_OFF}
+            disabled={!listOk} onDown={listCmd('bulletList')} />
+          <Btn name={listOk ? 'orderedList' : null} icon={I.ol} title={listOk ? 'Numbered list — Enter on an empty item steps out one level, Esc ends the list' : LIST_OFF}
+            disabled={!listOk} onDown={listCmd('orderedList')} />
           <Btn icon={I.outdent} title="Decrease indent (Shift+Tab)" disabled={!listOk || !editor?.can().liftListItem('listItem')} onDown={run((c) => c.liftListItem('listItem'))} />
           <Btn icon={I.indent} title={listOk && !inList ? 'Increase indent — works inside a list (Tab)' : 'Increase indent (Tab)'} disabled={!listOk || !editor?.can().sinkListItem('listItem')} onDown={run((c) => c.sinkListItem('listItem'))} />
           <span className="fbar-sep" />

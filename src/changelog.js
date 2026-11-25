@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.26',
+    date: '2026-11-25',
+    title: 'Step out of lists one level at a time',
+    tag: 'Improved',
+    items: [
+      'Pressing Enter on an empty bullet no longer drops you out of the list. You get a plain line that stays indented under the item above — great for a heading or a short note.',
+      'Press Enter again on an empty line to step out one level, and again to leave the list. Backspace does the same.',
+      'On an indented line, the list buttons (or Tab) start a sub-list there. Esc still leaves the list in one go.',
+    ],
+  },
+  {
     version: '1.25',
     date: '2026-11-25',
     title: 'Easier to leave a list',

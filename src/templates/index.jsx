@@ -172,6 +172,8 @@ function splitSegs(text) {
 // One line of a description: a paragraph, a bullet, or a numbered item (indented by level).
 function TextBlock({ b }) {
   if (b.kind === 'gap') return <div className="rs-gap" aria-hidden />;
+  // More text inside a list item: no bullet, lined up with the item's text.
+  if (b.kind === 'cont') return <p className={`rs-tp rs-cont rs-cont-${b.listKind}`} style={{ '--lvl': b.level }}><Rich text={b.text} /></p>;
   const indent = b.level ? { marginLeft: `${b.level * 11}pt` } : undefined;
   if (b.kind === 'ul') return <ul className="rs-ul" style={indent}><li className={b.level ? 'sub' : undefined}><Rich text={b.text} /></li></ul>;
   if (b.kind === 'ol') return <ol className="rs-ol" style={indent}><li><span className="rs-num">{b.level % 2 ? String.fromCharCode(96 + ((b.n - 1) % 26) + 1) : b.n}.</span><Rich text={b.text} /></li></ol>;

@@ -76,6 +76,10 @@
 /* Keep the spaces and blank lines people type */
 .rs-tp, .rs-ul li, .rs-ol li { white-space: pre-wrap; }
 .rs-gap { height: calc(var(--lh) * 1em); }
+.rs-cont { margin-left: calc(var(--lvl, 0) * 11pt + 12pt); }
+.rs-cont-ol { margin-left: calc(var(--lvl, 0) * 11pt + 14pt); }
+.rs-compact .rs-cont-ul { margin-left: calc(var(--lvl, 0) * 11pt + 10pt); }
+.rs-highlight .col-side .rs-custom .rs-cont { margin-left: calc(var(--lvl, 0) * 11pt + 17pt); }
 .rs-ul li.sub::before { background: transparent; box-shadow: inset 0 0 0 0.8pt var(--accent); }
 .rs-ol { list-style: none; }
 .rs-ol li { position: relative; padding-left: 14pt; margin-top: 1.5pt; }
