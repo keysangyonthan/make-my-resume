@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.28',
+    date: '2026-11-26',
+    title: 'Short, clickable links',
+    tag: 'New',
+    items: [
+      'Add as many links as you like in Personal details — LinkedIn, Portfolio, GitHub, Behance and more.',
+      'Each link has the short text shown on your resume (like “LinkedIn”), underlined and clickable, and the full address it opens. No more long URLs on your resume.',
+      'Paste an address and we fill in the name for you. Your existing Website and LinkedIn are moved over automatically.',
+    ],
+  },
+  {
     version: '1.27',
     date: '2026-11-25',
     title: 'Pick a style from the home page',

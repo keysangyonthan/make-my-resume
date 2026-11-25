@@ -3,6 +3,7 @@
 // exported PDF break pages in exactly the same places.
 import { dateRange, isEmptyEntry } from '../lib/resume';
 import { parseInline, textBlocks, upgradeResume } from '../lib/rich';
+import { linksOf, shortUrl } from '../lib/links';
 
 export const TEMPLATES = {
   modern: { name: 'Modern', blurb: 'Clean sans-serif with accent color', columns: ['main'], fs: 10 },
@@ -66,12 +67,15 @@ function contactItems(p) {
   if (p.email) items.push({ k: 'email', text: p.email, href: `mailto:${p.email}` });
   if (p.phone) items.push({ k: 'phone', text: p.phone, href: `tel:${p.phone.replace(/\s+/g, '')}` });
   if (p.location) items.push({ k: 'location', text: p.location });
-  if (p.website) items.push({ k: 'website', text: p.website, href: href(p.website) });
-  if (p.linkedin) items.push({ k: 'linkedin', text: p.linkedin, href: href(p.linkedin) });
+  // Links show their short label (e.g. "LinkedIn"), underlined, and open the full address.
+  linksOf(p).forEach((l, i) => {
+    if (!(l.url || '').trim()) return;
+    items.push({ k: `link-${l.id || i}`, icon: 'website', link: true, text: (l.label || '').trim() || shortUrl(l.url), href: href(l.url.trim()) });
+  });
   return items;
 }
 
-const Link = ({ item }) => (item.href ? <a href={item.href}>{item.text}</a> : <span>{item.text}</span>);
+const Link = ({ item }) => (item.href ? <a href={item.href} className={item.link ? 'rs-link' : undefined}>{item.text}</a> : <span>{item.text}</span>);
 
 const CONTACT_ICONS = {
   phone: <path d="M5 4h3l2 5-2.5 1.5a11 11 0 005 5L14 13l5 2v3a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2" />,
@@ -79,7 +83,6 @@ const CONTACT_ICONS = {
   location: <><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></>,
   website: <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" />,
 };
-CONTACT_ICONS.linkedin = CONTACT_ICONS.website;
 const ContactIcon = ({ k }) => (
   <svg className="rs-ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{CONTACT_ICONS[k]}</svg>
 );
@@ -95,7 +98,7 @@ function Header({ p, withContact, icons }) {
           {items.map((it, i) => (
             <span key={it.k} className="rs-contact-item">
               {i > 0 && <span className="rs-sep" aria-hidden>•</span>}
-              {icons && <ContactIcon k={it.k} />}
+              {icons && <ContactIcon k={it.icon || it.k} />}
               <Link item={it} />
             </span>
           ))}
@@ -270,12 +273,18 @@ function ContactBlock({ p }) {
   if (!items.length) return null;
   return (
     <div className="rs-contact-list">
-      {items.map((it) => (
+      {items.filter((it) => !it.link).map((it) => (
         <div key={it.k} className="rs-contact-row">
-          <span className="rs-contact-k">{it.k === 'linkedin' ? 'LinkedIn' : it.k[0].toUpperCase() + it.k.slice(1)}</span>
+          <span className="rs-contact-k">{it.k[0].toUpperCase() + it.k.slice(1)}</span>
           <Link item={it} />
         </div>
       ))}
+      {items.some((it) => it.link) && (
+        <div className="rs-contact-row">
+          <span className="rs-contact-k">Links</span>
+          <span className="rs-link-list">{items.filter((it) => it.link).map((it) => <Link key={it.k} item={it} />)}</span>
+        </div>
+      )}
     </div>
   );
 }

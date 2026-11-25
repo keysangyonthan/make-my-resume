@@ -37,6 +37,9 @@
 
 :where(.rs) :where(h1, h2, p, ul, ol) { margin: 0; padding: 0; }
 .rs a { color: inherit; text-decoration: none; }
+/* Contact links show a short label (e.g. "LinkedIn"), underlined so it reads as clickable */
+.rs a.rs-link { text-decoration: underline; text-decoration-thickness: 0.6pt; text-underline-offset: 1.5pt; }
+.rs-link-list { display: flex; flex-wrap: wrap; column-gap: 8pt; }
 .rs-p a, .rs-ul a, .rs-ol a, .rs-tp a { text-decoration: underline; text-decoration-thickness: 0.5pt; text-underline-offset: 1.5pt; }
 
 /* Header */

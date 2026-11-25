@@ -11,6 +11,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import ResumePages from '../components/ResumePages';
 import { ItemList, SectionCard, TextInput } from '../components/FormParts';
 import { FormatBar, RichTextArea } from '../components/RichText';
+import LinksField from '../components/LinksField';
 import { plainText, stripBullet, upgradeResume } from '../lib/rich';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
@@ -444,9 +445,8 @@ export default function Editor() {
                 <TextInput label="Headline" optional value={p.headline} onChange={setPersonal('headline')} placeholder="Senior Product Designer" />
                 <TextInput label="Email" type="email" value={p.email} onChange={setPersonal('email')} placeholder="you@email.com" />
                 <TextInput label="Phone" type="tel" optional value={p.phone} onChange={setPersonal('phone')} placeholder="+91 98765 43210" />
-                <TextInput label="Location" optional value={p.location} onChange={setPersonal('location')} placeholder="City, Country" />
-                <TextInput label="Website" optional value={p.website} onChange={setPersonal('website')} placeholder="yourname.com" />
-                <TextInput full label="LinkedIn" optional value={p.linkedin} onChange={setPersonal('linkedin')} placeholder="linkedin.com/in/yourname" />
+                <TextInput full label="Location" optional value={p.location} onChange={setPersonal('location')} placeholder="City, Country" />
+                <LinksField personal={p} onChange={(links) => change((r) => ({ ...r, data: { ...r.data, personal: { ...r.data.personal, links, website: '', linkedin: '' } } }))} />
               </div>
             </SectionCard>
             {order.map(renderKeyed)}
