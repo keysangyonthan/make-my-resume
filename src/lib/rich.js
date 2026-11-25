@@ -64,19 +64,22 @@ const LIST_LINE = /^(\s*)(?:([-•*])|(\d+)[.)])\s+(.*)$/;
 // → { kind: 'p' | 'ul' | 'ol', level, text }
 export function parseLine(l) {
   const m = LIST_LINE.exec(l);
-  if (!m) return { kind: 'p', level: 0, text: l.trim() };
+  if (!m) return { kind: 'p', level: 0, text: l.trim() ? l.trimEnd() : '' };
   return { kind: m[2] ? 'ul' : 'ol', level: Math.min(4, Math.floor(m[1].replace(/\t/g, '  ').length / 2)), text: m[4].trim() };
 }
 export const isBulletLine = (l) => LIST_LINE.test(l);
 export const stripBullet = (l) => parseLine(l).text;
 
-// Text → blocks for the resume, with numbers worked out: { kind, level, text, n }
+// Text → blocks for the resume, with numbers worked out: { kind, level, text, n }.
+// Empty lines between text become { kind: 'gap' } so blank lines show as space.
 export function textBlocks(text) {
   const out = [];
   const counters = [];
   let prev = null;
+  let gaps = 0;
   for (const raw of (text || '').split('\n')) {
-    if (!raw.trim()) { prev = null; counters.length = 0; continue; }
+    if (!raw.trim()) { prev = null; counters.length = 0; if (out.length) gaps += 1; continue; }
+    for (; gaps > 0; gaps -= 1) out.push({ kind: 'gap', level: 0, text: '' });
     const b = parseLine(raw);
     if (!b.text) continue;
     if (b.kind === 'p') { counters.length = 0; prev = b; out.push(b); continue; }

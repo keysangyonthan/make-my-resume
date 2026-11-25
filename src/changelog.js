@@ -3,6 +3,26 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.25',
+    date: '2026-11-25',
+    title: 'Easier to leave a list',
+    tag: 'Fixed',
+    items: [
+      'There’s now always an empty line under a list, so you can click below it and keep writing.',
+      'Press Esc to end a list, or Backspace at the start of a bullet to turn it back into normal text. Pressing Enter on an empty bullet still works too.',
+    ],
+  },
+  {
+    version: '1.24',
+    date: '2026-11-25',
+    title: 'Blank lines and extra spaces',
+    tag: 'Fixed',
+    items: [
+      'Empty lines you add between text now show as space on your resume and in the PDF.',
+      'Extra spaces you type are kept instead of being squeezed into one.',
+    ],
+  },
+  {
     version: '1.23',
     date: '2026-11-25',
     title: 'Lists your way & a new Highlight template',

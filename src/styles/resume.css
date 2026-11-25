@@ -73,6 +73,9 @@
 
 .rs-p { margin-top: 2pt; }
 .rs-tp { margin-top: 1.5pt; }
+/* Keep the spaces and blank lines people type */
+.rs-tp, .rs-ul li, .rs-ol li { white-space: pre-wrap; }
+.rs-gap { height: calc(var(--lh) * 1em); }
 .rs-ul li.sub::before { background: transparent; box-shadow: inset 0 0 0 0.8pt var(--accent); }
 .rs-ol { list-style: none; }
 .rs-ol li { position: relative; padding-left: 14pt; margin-top: 1.5pt; }
@@ -265,3 +268,4 @@
 .rs-highlight .rs-skill-label { display: block; margin-bottom: 3pt; }
 .rs-highlight .rs-chips { gap: 4pt; }
 .rs-highlight .rs-chip { background: none; border: 0.9pt solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0.5pt 6pt; font-size: 1.02em; }
+.rs-highlight .col-side .rs-custom .rs-ul li { white-space: normal; } /* the bold heading sits on its own line */

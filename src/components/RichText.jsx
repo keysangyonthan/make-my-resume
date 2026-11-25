@@ -2,6 +2,8 @@
 // floating formatting bar that appears at the bottom while one of them is being edited.
 import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
+import { Plugin } from '@tiptap/pm/state';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import LinkExt from '@tiptap/extension-link';
@@ -14,6 +16,46 @@ const subs = new Set();
 const emit = () => subs.forEach((f) => f());
 const setActive = (a) => { if (active?.editor !== a?.editor || active?.mode !== a?.mode) { active = a; emit(); } };
 const useActive = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => active);
+
+// Easy ways out of a list:
+//  • Enter on an empty bullet (built in), Esc, or Backspace at the start of a bullet
+//  • there is always an empty line under a list at the end, so you can click below it
+const isList = (n) => n && (n.type.name === 'bulletList' || n.type.name === 'orderedList');
+const ListExit = Extension.create({
+  name: 'listExit',
+  addKeyboardShortcuts() {
+    const inItem = () => this.editor.isActive('listItem');
+    return {
+      Escape: () => {
+        if (!inItem()) return false;
+        let guard = 0;
+        while (this.editor.isActive('listItem') && guard++ < 8) { if (!this.editor.commands.liftListItem('listItem')) break; }
+        return true;
+      },
+      Backspace: () => {
+        const { $from, empty } = this.editor.state.selection;
+        if (!empty || $from.parentOffset !== 0 || $from.depth < 2) return false;
+        if ($from.node(-1).type.name !== 'listItem' || $from.index(-1) !== 0) return false;
+        return this.editor.commands.liftListItem('listItem');
+      },
+    };
+  },
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      appendTransaction: (trs, _old, state) => {
+        const last = state.doc.lastChild;
+        if (!isList(last)) return null;
+        return state.tr.insert(state.doc.content.size, state.schema.nodes.paragraph.create());
+      },
+    })];
+  },
+});
+
+// A list at the very end gets an empty line under it, so there's somewhere to click.
+const editorHtml = (v, lists) => {
+  const h = toEditorHtml(v, { lists });
+  return lists && /<\/(ul|ol)>$/.test(h) ? `${h}<p></p>` : h;
+};
 
 // mode:
 //  'rich'  – paragraphs, plus bullet / numbered lists and indenting from the formatting bar
@@ -34,8 +76,9 @@ export function RichTextArea({ label, value, onChange, placeholder, optional, he
       Underline,
       LinkExt.configure({ openOnClick: false, autolink: false, linkOnPaste: true, HTMLAttributes: { rel: 'noopener noreferrer' } }),
       Placeholder.configure({ placeholder: placeholder || '' }),
+      ...(lists ? [ListExit] : []),
     ],
-    content: toEditorHtml(value, { lists }),
+    content: editorHtml(value, lists),
     editorProps: {
       // keep the cursor clear of the floating formatting bar
       scrollMargin: { top: 24, bottom: 110, left: 0, right: 0 },
@@ -43,6 +86,7 @@ export function RichTextArea({ label, value, onChange, placeholder, optional, he
       attributes: { id, class: 'rt-input', role: 'textbox', 'aria-multiline': 'true', ...(label ? { 'aria-label': label } : {}) } },
     onUpdate: ({ editor: ed }) => {
       const v = fromEditorJson(ed.getJSON());
+      if (v === last.current) return; // e.g. only an empty line was added under a list
       last.current = v;
       changeRef.current(v);
     },
@@ -53,7 +97,7 @@ export function RichTextArea({ label, value, onChange, placeholder, optional, he
   useEffect(() => {
     if (!editor || (value || '') === last.current) return;
     last.current = value || '';
-    editor.commands.setContent(toEditorHtml(value, { lists }), false);
+    editor.commands.setContent(editorHtml(value, lists), false);
   }, [value, editor, lists]);
 
   useEffect(() => () => { if (active?.editor === editor) setActive(null); }, [editor]);
@@ -174,9 +218,9 @@ export function FormatBar() {
           <Btn name="italic" icon={I.italic} title={`Italic (${key('I')})`} onDown={run((c) => c.toggleItalic())} />
           <Btn name="underline" icon={I.underline} title={`Underline (${key('U')})`} onDown={run((c) => c.toggleUnderline())} />
           <span className="fbar-sep" />
-          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list' : LIST_OFF}
+          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list — press Enter twice or Esc to end it' : LIST_OFF}
             disabled={!listOk} onDown={run((c) => c.toggleBulletList())} />
-          <Btn name={listOk ? 'orderedList' : null} icon={I.ol} title={listOk ? 'Numbered list' : LIST_OFF}
+          <Btn name={listOk ? 'orderedList' : null} icon={I.ol} title={listOk ? 'Numbered list — press Enter twice or Esc to end it' : LIST_OFF}
             disabled={!listOk} onDown={run((c) => c.toggleOrderedList())} />
           <Btn icon={I.outdent} title="Decrease indent (Shift+Tab)" disabled={!listOk || !editor?.can().liftListItem('listItem')} onDown={run((c) => c.liftListItem('listItem'))} />
           <Btn icon={I.indent} title={listOk && !inList ? 'Increase indent — works inside a list (Tab)' : 'Increase indent (Tab)'} disabled={!listOk || !editor?.can().sinkListItem('listItem')} onDown={run((c) => c.sinkListItem('listItem'))} />
