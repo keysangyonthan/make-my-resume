@@ -5,13 +5,14 @@ import { getResume, saveResume } from '../lib/store';
 import {
   SECTION_LABELS, clearedData, emptyCustom, emptyEducation, emptyExperience, emptyProject, emptySkill,
 } from '../lib/resume';
-import { PAGE_SIZES } from '../templates';
+import { PAGE_SIZES, TEMPLATES } from '../templates';
 import CustomiseLook from '../components/CustomiseLook';
 import ProfileMenu from '../components/ProfileMenu';
 import ResumePages from '../components/ResumePages';
 import { ItemList, SectionCard, TextInput } from '../components/FormParts';
 import { FormatBar, RichTextArea } from '../components/RichText';
 import LinksField from '../components/LinksField';
+import LogoPicker from '../components/LogoPicker';
 import { plainText, stripBullet, upgradeResume } from '../lib/rich';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
@@ -227,6 +228,8 @@ export default function Editor() {
   const setData = (key, value) => change((r) => ({ ...r, data: { ...r.data, [key]: value } }));
   const setPersonal = (k) => (v) => change((r) => ({ ...r, data: { ...r.data, personal: { ...r.data.personal, [k]: v } } }));
   const p = data.personal;
+  // Templates that show company / school logos get an upload box in each job and school.
+  const withLogos = !!TEMPLATES[resume.template]?.logos;
 
   const order = resume.sectionOrder;
   const moveSection = (k, d) => {
@@ -292,6 +295,7 @@ export default function Editor() {
                     <label className="check"><input type="checkbox" checked={!!e.current} onChange={(ev) => set({ current: ev.target.checked })} /> I currently work here</label>
                   </div>
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="Bengaluru / Remote" />
+                  {withLogos && <LogoPicker value={e.logo} name={e.company} onChange={(v) => set({ logo: v })} />}
                   <RichTextArea label="What did you do?" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={5}
                     help="Tip: use the formatting bar below for bullet or numbered lists."
                     placeholder={'Led the redesign of onboarding, lifting retention by 18%\nMentored 4 designers'} />
@@ -312,6 +316,7 @@ export default function Editor() {
                   <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2016" />
                   <TextInput label="End" value={e.end} onChange={(v) => set({ end: v })} placeholder="2020" />
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="New Delhi" />
+                  {withLogos && <LogoPicker label="School logo" value={e.logo} name={e.school} onChange={(v) => set({ logo: v })} />}
                   <RichTextArea label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
                     help="Grades, honours, relevant coursework." placeholder="CGPA 8.9 / 10" />
                 </div>

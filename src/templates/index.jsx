@@ -4,6 +4,7 @@
 import { dateRange, isEmptyEntry } from '../lib/resume';
 import { parseInline, textBlocks, upgradeResume } from '../lib/rich';
 import { linksOf, shortUrl } from '../lib/links';
+import { initialsOf } from '../lib/logo';
 
 export const TEMPLATES = {
   modern: { name: 'Modern', blurb: 'Clean sans-serif with accent color', columns: ['main'], fs: 10 },
@@ -13,6 +14,8 @@ export const TEMPLATES = {
     top: true, side: ['custom', 'education', 'skills'], accent: '#e5372a',
     order: ['summary', 'custom', 'experience', 'education', 'skills', 'projects'],
   },
+  // Company and school logos beside each entry (uploaded in the editor; initials when there's none).
+  logos: { name: 'Logos', blurb: 'Company logos beside each job', columns: ['main'], fs: 9.8, logos: true },
   classic: { name: 'Classic', blurb: 'Timeless serif, centered header', columns: ['main'], fs: 10.5 },
   compact: { name: 'Concise', blurb: 'Tight spacing — fits more on one page', columns: ['main'], fs: 9 },
   spacious: { name: 'Spacious', blurb: 'Airy layout, larger type', columns: ['main'], fs: 11 },
@@ -110,7 +113,22 @@ function Header({ p, withContact, icons }) {
 
 const SectionTitle = ({ children }) => <h2 className="rs-section">{children}</h2>;
 
-function EntryHead({ title, sub, date, org, place, stacked }) {
+function EntryHead({ title, sub, date, org, place, stacked, logo, logoName }) {
+  // With logos: a small square logo (or initials) to the left of the title and company.
+  if (logo !== undefined) {
+    return (
+      <div className="rs-eh rs-eh-logo">
+        <span className="rs-logo">{logo ? <img src={logo} alt="" /> : <span>{initialsOf(logoName) || '•'}</span>}</span>
+        <div className="rs-eh-main">
+          <div className="rs-eh-row">
+            <span className="rs-eh-title">{title}</span>
+            {date && <span className="rs-eh-date">{date}</span>}
+          </div>
+          {sub && <div className="rs-eh-sub">{sub}</div>}
+        </div>
+      </div>
+    );
+  }
   // "Stacked": title on its own line, then company (in the accent color) and dates.
   if (stacked) {
     return (
@@ -204,8 +222,8 @@ function sectionBlocks(key, data, ctx) {
     title('Experience');
     items.forEach((e) => {
       const b = textBlocks(e.bullets);
-      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} org={e.role ? e.company : ''} place={e.location} title={e.role || e.company} sub={join(e.role ? e.company : '', e.location)} date={dateRange(e.start, e.end, e.current)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <TextBlock b={t} />));
+      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} logo={ctx.logos ? e.logo || '' : undefined} logoName={e.company || e.role} org={e.role ? e.company : ''} place={e.location} title={e.role || e.company} sub={join(e.role ? e.company : '', e.location)} date={dateRange(e.start, e.end, e.current)} />, b.length > 0);
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <div className="rs-under"><TextBlock b={t} /></div>));
     });
   }
 
@@ -215,8 +233,8 @@ function sectionBlocks(key, data, ctx) {
     title('Education');
     items.forEach((e) => {
       const b = textBlocks(e.details);
-      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} org={e.degree ? e.school : ''} place={e.location} title={e.degree || e.school} sub={join(e.degree ? e.school : '', e.location)} date={dateRange(e.start, e.end)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <TextBlock b={t} />));
+      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} logo={ctx.logos ? e.logo || '' : undefined} logoName={e.school || e.degree} org={e.degree ? e.school : ''} place={e.location} title={e.degree || e.school} sub={join(e.degree ? e.school : '', e.location)} date={dateRange(e.start, e.end)} />, b.length > 0);
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <div className="rs-under"><TextBlock b={t} /></div>));
     });
   }
 
@@ -323,7 +341,7 @@ export function buildColumns(input) {
 
   if (tpl.columns.length === 1) {
     const main = [{ key: 'header', node: <Header p={p} withContact />, kwn: false }];
-    order.forEach((k) => main.push(...sectionBlocks(k, data, {})));
+    order.forEach((k) => main.push(...sectionBlocks(k, data, { logos: tpl.logos })));
     return { main };
   }
 

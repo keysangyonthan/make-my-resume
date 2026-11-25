@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.30',
+    date: '2026-11-26',
+    title: 'Logos template',
+    tag: 'New',
+    items: [
+      'New Logos template: a small company logo beside each job, and a school logo beside each degree.',
+      'Upload any image — PNG, JPG, SVG or WebP — from each job or school in the form. Logos are optional; without one, the company’s initials are shown.',
+      'Logos scale with your font size and print sharply in the PDF.',
+    ],
+  },
+  {
     version: '1.29',
     date: '2026-11-26',
     title: 'Speak to type',
