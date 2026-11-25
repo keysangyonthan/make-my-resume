@@ -9,6 +9,7 @@ import Underline from '@tiptap/extension-underline';
 import LinkExt from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { fromEditorJson, toEditorHtml } from '../lib/rich';
+import { dictationSupported, joinSpoken, useDictation } from '../lib/dictation';
 
 // ---- which text box is being edited (shared with the formatting bar) ----
 let active = null; // { editor, mode }
@@ -191,6 +192,7 @@ const I = {
   clear: <path d="M4 7V5h12v2M10 5l-3 14M13 19h-5M15 14l5 5M20 14l-5 5" />,
   undo: <path d="M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-3" />,
   redo: <path d="M15 14l5-5-5-5M20 9H9a5 5 0 000 10h3" />,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3M8.5 21h7" /></>,
 };
 const Svg = ({ d }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>;
 
@@ -206,15 +208,21 @@ export function FormatBar() {
   const [, rerender] = useReducer((x) => x + 1, 0);
   const [linkOpen, setLinkOpen] = useState(false);
   const [url, setUrl] = useState('');
+  const [input, setInput] = useState(null); // a plain text box being typed in (dictation only)
   const editor = a?.editor;
 
-  // Hide the bar when focus leaves the text boxes (and the bar itself).
+  // Show the bar while a text box is being edited; hide it when focus leaves (and isn't in the bar).
+  // Formatting works in the bigger text boxes; dictation works in every text box of the form.
   useEffect(() => {
+    const plain = (el) => el?.closest?.('.eform') && !barRef.current?.contains(el)
+      && ((el.tagName === 'INPUT' && /^(text|email|tel|url|search)$/.test(el.type)) || el.tagName === 'TEXTAREA');
     const check = () => {
       const el = document.activeElement;
-      if (el?.closest?.('.ProseMirror') || barRef.current?.contains(el)) return;
+      if (el?.closest?.('.ProseMirror')) { setInput(null); return; }
+      if (barRef.current?.contains(el)) return;
       setActive(null);
       setLinkOpen(false);
+      setInput(dictationSupported && plain(el) ? el : null);
     };
     const onOut = () => setTimeout(check, 0);
     document.addEventListener('focusout', onOut);
@@ -230,6 +238,52 @@ export function FormatBar() {
   }, [editor]);
 
   useEffect(() => { setLinkOpen(false); }, [editor]);
+
+  // ---- Dictation: spoken words go in at the cursor ----
+  const insertSpoken = (text) => {
+    if (editor) {
+      text.split('\n').forEach((part, i) => {
+        if (i > 0) editor.commands.keyboardShortcut('Enter');
+        const { $from } = editor.state.selection;
+        const ins = joinSpoken($from.parent.textBetween(0, $from.parentOffset, '\n'), part);
+        if (ins) editor.chain().focus().insertContent({ type: 'text', text: ins }).run();
+      });
+    } else if (input && document.body.contains(input)) {
+      const startAt = input.selectionStart ?? input.value.length;
+      const endAt = input.selectionEnd ?? startAt;
+      const before = input.value.slice(0, startAt);
+      const ins = joinSpoken(before, text.replace(/\n+/g, ' '));
+      if (!ins) return;
+      // Set the value the way typing would, so the form notices the change.
+      const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value').set;
+      setter.call(input, before + ins + input.value.slice(endAt));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.setSelectionRange(startAt + ins.length, startAt + ins.length);
+    }
+  };
+  const dictation = useDictation(insertSpoken);
+  const { stop: stopDictation, clearError } = dictation;
+  useEffect(() => { stopDictation(); }, [editor, input, stopDictation]);
+  useEffect(() => {
+    if (!dictation.error) return undefined;
+    const t = setTimeout(clearError, 6000);
+    return () => clearTimeout(t);
+  }, [dictation.error, clearError]);
+  const micDown = (e) => {
+    e.preventDefault();
+    if (!dictationSupported) return;
+    if (dictation.listening) dictation.stop(); else dictation.start();
+  };
+  const micTitle = !dictationSupported
+    ? 'Dictation isn’t available in this browser — try Chrome, Edge or Safari'
+    : dictation.listening ? 'Stop dictation' : 'Dictate — speak to type. Say “comma”, “full stop” or “new line” for punctuation.';
+  const Mic = ({ wide }) => (
+    <button type="button" className={`fbar-btn fbar-mic ${wide ? 'wide' : ''} ${dictation.listening ? 'rec' : ''} ${dictationSupported ? '' : 'off'}`}
+      title={micTitle} aria-label={dictation.listening ? 'Stop dictation' : 'Dictate'} aria-pressed={dictation.listening} onMouseDown={micDown}>
+      <Svg d={I.mic} />
+      {wide && <span>{dictation.listening ? 'Stop' : 'Speak to type'}</span>}
+    </button>
+  );
 
   const on = (name) => !!editor?.isActive(name);
   const run = (fn) => (e) => { e.preventDefault(); if (editor) fn(editor.chain().focus()).run(); };
@@ -273,9 +327,16 @@ export function FormatBar() {
   );
 
   return (
-    <div ref={barRef} className={`fbar ${editor ? 'show' : ''}`} role="toolbar" aria-label="Text formatting" aria-hidden={!editor}
+    <div ref={barRef} className={`fbar ${editor || input ? 'show' : ''}`} role="toolbar" aria-label="Text formatting" aria-hidden={!editor && !input}
       onMouseDown={(e) => { if (e.target.tagName !== 'INPUT') e.preventDefault(); }}>
-      {linkOpen ? (
+      {(dictation.listening || dictation.error) && (
+        <div className={`fbar-bubble ${dictation.error ? 'err' : ''}`} role="status" aria-live="polite">
+          {dictation.error || (<><i className="fbar-dot" />{dictation.interim || 'Listening… speak now'}</>)}
+        </div>
+      )}
+      {!editor && input ? (
+        <Mic wide />
+      ) : linkOpen ? (
         <form className="fbar-link" onSubmit={applyLink}>
           <Svg d={I.link} />
           <input autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a link, e.g. github.com/you"
@@ -302,6 +363,8 @@ export function FormatBar() {
           <span className="fbar-sep" />
           <Btn icon={I.undo} title={`Undo (${key('Z')})`} disabled={!editor?.can().undo()} onDown={run((c) => c.undo())} />
           <Btn icon={I.redo} title={`Redo (${key('⇧Z')})`} disabled={!editor?.can().redo()} onDown={run((c) => c.redo())} />
+          <span className="fbar-sep" />
+          <Mic />
         </>
       )}
     </div>

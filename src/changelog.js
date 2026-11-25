@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.29',
+    date: '2026-11-26',
+    title: 'Speak to type',
+    tag: 'New',
+    items: [
+      'Tap the microphone in the bar at the bottom to fill in your resume by voice — it works in every text box of the form.',
+      'Say “comma”, “full stop” or “new line” for punctuation. Tap the microphone again to stop.',
+      'Uses your browser’s built-in speech recognition (Chrome, Edge and Safari), free and with no extra sign-up.',
+    ],
+  },
+  {
     version: '1.28',
     date: '2026-11-26',
     title: 'Short, clickable links',
