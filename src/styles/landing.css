@@ -197,3 +197,26 @@
   .ap-foot-in { flex-direction: column; align-items: center; gap: 10px; }
   .ap-foot-top { padding: 44px 20px 32px; }
 }
+
+/* Clickable styles */
+button.ap-style { display: flex; flex-direction: column; justify-content: flex-start; align-self: flex-start; appearance: none; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.ap-style-thumb { position: relative; }
+.ap-style-cta { position: absolute; left: 50%; bottom: 16px; transform: translate(-50%, 8px); opacity: 0; transition: opacity 0.2s, transform 0.2s; background: #0f172a; color: #fff; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 999px; white-space: nowrap; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.4); }
+.ap-style:hover .ap-style-cta, .ap-style:focus-visible .ap-style-cta { opacity: 1; transform: translate(-50%, 0); }
+.ap-style:focus-visible .ap-style-thumb { outline: 3px solid #4f46e5; outline-offset: 3px; }
+.ap-style-cap { display: block; margin-top: 16px; }
+.ap-style-cap b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.ap-style-cap span { font-size: 14px; color: var(--ap-gray); }
+@media (hover: none) { .ap-style-cta { opacity: 1; transform: translate(-50%, 0); } }
+
+/* "Start with this style" window */
+.ap-pick { display: flex; gap: 22px; align-items: center; }
+.ap-pick-thumb { flex: none; border-radius: 10px; overflow: hidden; box-shadow: 0 16px 34px -16px rgba(15,23,42,0.35), 0 0 0 1px rgba(15,23,42,0.06); }
+.ap-pick-text h3 { margin: 0 0 8px; font-size: 19px; letter-spacing: -0.01em; color: #0f172a; }
+.ap-pick-text p { margin: 0 0 18px; color: #475569; font-size: 14.5px; line-height: 1.55; }
+.ap-pick-btn { width: 100%; justify-content: center; }
+.ap-pick-later { display: block; margin: 12px auto 0; border: 0; background: none; color: #64748b; font-size: 13.5px; cursor: pointer; }
+.ap-pick-later:hover { color: #0f172a; }
+.ap-pick-error { color: #b91c1c !important; font-size: 13px !important; margin: 10px 0 0 !important; }
+@media (max-width: 600px) { .ap-pick { flex-direction: column; } .ap-pick-thumb { width: 200px; } }
+.modal.sm:has(.ap-pick) { width: min(640px, 100%); }

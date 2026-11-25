@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { deleteResume, listResumes, newId, saveResume } from '../lib/store';
 import { blankResume, sampleResume } from '../lib/resume';
@@ -96,6 +96,20 @@ export default function Dashboard() {
       setCreating(null);
     }
   }
+
+  // Picked a style on the home page before signing in? Open it straight away.
+  const [params, setParams] = useSearchParams();
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current) return;
+    let k = params.get('template');
+    try { k = k || sessionStorage.getItem('mmr_start_template'); sessionStorage.removeItem('mmr_start_template'); } catch { /* ignore */ }
+    if (!k || !TEMPLATES[k]) return;
+    autoStarted.current = true;
+    setParams({}, { replace: true });
+    create({ template: k });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Template previews use example content with the user's own name where we have it.
   const linked = linkedInOf(user);

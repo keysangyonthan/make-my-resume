@@ -3,6 +3,15 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.27',
+    date: '2026-11-25',
+    title: 'Pick a style from the home page',
+    tag: 'New',
+    items: [
+      'Click any style in “A style for every story” to start your resume in it. If you’re not signed in yet, you’re asked to continue with Google first, then it opens straight in that style.',
+    ],
+  },
+  {
     version: '1.26',
     date: '2026-11-25',
     title: 'Step out of lists one level at a time',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { APP_NAME, CREATOR_NAME } from '../config';
+import { APP_NAME, CREATOR_NAME, SHOWCASE_NAME } from '../config';
 import { useAuth } from '../lib/auth';
 import { sampleResume } from '../lib/resume';
 import { TEMPLATES, TEMPLATE_KEYS, templateSample } from '../templates';
@@ -8,15 +8,23 @@ import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon, Wordmark } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
 import FeedbackModal from '../components/FeedbackModal';
+import Modal from '../components/Modal';
 import { LinkedInLogo, linkedInOf } from '../components/LinkedIn';
 import { resumeDataFromLinkedIn } from '../lib/linkedin';
+
+// The example resume on this page, with the creator's name (placeholder contact details).
+function showcaseSample() {
+  const r = sampleResume();
+  r.data.personal = { ...r.data.personal, fullName: SHOWCASE_NAME, email: 'keysang@email.com', website: '', linkedin: '' };
+  return r;
+}
 
 // The example resume shown on this page — the visitor's own LinkedIn details when they've imported them.
 function useShowcaseResume() {
   const { user } = useAuth();
   const li = linkedInOf(user);
   return useMemo(() => {
-    const r = sampleResume();
+    const r = showcaseSample();
     if (li) r.data = resumeDataFromLinkedIn(li.data);
     return r;
   }, [li]);
@@ -81,9 +89,9 @@ function HeroFan() {
 }
 
 // A small editor window: the name types itself and the preview follows.
-const NAMES = ['Priya Sharma', 'Arjun Mehta', 'Sara Thomas'];
+const NAMES = [SHOWCASE_NAME, 'Arjun Mehta', 'Sara Thomas'];
 function LiveDemo() {
-  const base = useMemo(() => sampleResume(), []);
+  const base = useMemo(() => showcaseSample(), []);
   const [text, setText] = useState('');
   const state = useRef({ n: 0, i: 0, dir: 1, wait: 0 });
 
@@ -161,20 +169,79 @@ function LinkedInThumbs() {
   );
 }
 
+// How a style looks here: its own accent color, section order and example extras.
+const styleResume = (base, k) => ({
+  ...base,
+  template: k,
+  ...(TEMPLATES[k].accent ? { accent: TEMPLATES[k].accent } : {}),
+  ...(TEMPLATES[k].order ? { sectionOrder: TEMPLATES[k].order } : {}),
+  data: templateSample(base.data, k),
+});
+
+// The resume opens in this style once you're in (Your resumes picks it up after sign-in).
+export const START_TEMPLATE_KEY = 'mmr_start_template';
+
 function StyleStrip() {
   const base = useShowcaseResume();
+  const [picked, setPicked] = useState(null);
+  const navigate = useNavigate();
+  const { user, signIn, demo } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function startWithStyle() {
+    setError('');
+    try { sessionStorage.setItem(START_TEMPLATE_KEY, picked); } catch { /* ignore */ }
+    if (user) return navigate(`/app?template=${picked}`);
+    setBusy(true);
+    try {
+      const u = await signIn();
+      if (u) navigate(`/app?template=${picked}`);
+    } catch (e) {
+      setError(e?.message || 'Sign-in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="ap-strip" tabIndex={0} aria-label="Resume styles">
-      {TEMPLATE_KEYS.map((k) => (
-        <figure key={k} className="ap-style">
-          <div className="ap-style-thumb"><ResumePages resume={{ ...base, template: k, ...(TEMPLATES[k].accent ? { accent: TEMPLATES[k].accent } : {}), ...(TEMPLATES[k].order ? { sectionOrder: TEMPLATES[k].order } : {}), data: templateSample(base.data, k) }} width={210} maxPages={1} gap={0} /></div>
-          <figcaption>
-            <b>{TEMPLATES[k].name}</b>
-            <span>{TEMPLATES[k].blurb}</span>
-          </figcaption>
-        </figure>
-      ))}
-    </div>
+    <>
+      <div className="ap-strip" tabIndex={0} aria-label="Resume styles">
+        {TEMPLATE_KEYS.map((k) => (
+          <button key={k} type="button" className="ap-style" onClick={() => setPicked(k)} aria-label={`Use the ${TEMPLATES[k].name} style`}>
+            <div className="ap-style-thumb">
+              <ResumePages resume={styleResume(base, k)} width={210} maxPages={1} gap={0} />
+              <span className="ap-style-cta">Use this style</span>
+            </div>
+            <span className="ap-style-cap">
+              <b>{TEMPLATES[k].name}</b>
+              <span>{TEMPLATES[k].blurb}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {picked && (
+        <Modal title={`Start with ${TEMPLATES[picked].name}`} subtitle={TEMPLATES[picked].blurb} onClose={() => { setPicked(null); setError(''); }}>
+          <div className="ap-pick">
+            <div className="ap-pick-thumb"><ResumePages resume={styleResume(base, picked)} width={250} maxPages={1} gap={0} /></div>
+            <div className="ap-pick-text">
+              <h3>{user ? 'Your resume is ready to start' : 'Sign in to use this style'}</h3>
+              <p>
+                {user
+                  ? 'We’ll open it in this style with example content you can replace.'
+                  : 'It’s free. Sign in with Google and your resume opens in this style, with example content to replace with your own. Everything saves to your account.'}
+              </p>
+              <button className="ap-btn ap-pick-btn" onClick={startWithStyle} disabled={busy}>
+                {!user && !demo && <span className="ap-g"><GoogleIcon /></span>}
+                {busy ? 'Signing in…' : user ? `Open in ${TEMPLATES[picked].name}` : 'Continue with Google'}
+              </button>
+              {error && <p className="ap-pick-error">{error}</p>}
+              <button className="ap-pick-later" onClick={() => setPicked(null)}>Maybe later</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 
@@ -288,8 +355,8 @@ export default function Landing() {
         <div className="ap-li-flow ap-reveal">
           <div className="ap-li-profile" aria-hidden>
             <div className="ap-li-cover" />
-            <div className="ap-li-avatar">PS</div>
-            <b>Priya Sharma</b>
+            <div className="ap-li-avatar">{SHOWCASE_NAME.split(' ').map((w) => w[0]).join('').slice(0, 2)}</div>
+            <b>{SHOWCASE_NAME}</b>
             <span>Senior Product Designer · Bengaluru</span>
             <div className="ap-li-rows">
               <div><i>Experience</i>Lumen Labs · Kite Payments · Pixelcraft</div>
