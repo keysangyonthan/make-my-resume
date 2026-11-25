@@ -4,13 +4,15 @@ import { buildColumns, pageVars, PAGE_SIZES, TEMPLATES } from '../templates';
 
 // Distribute measured block heights onto pages, keeping headings with the
 // block that follows them.
-function paginate(blocks, heights, avail) {
+// `avail` is the usable height of the first page; `availRest` of the pages after it.
+function paginate(blocks, heights, avail, availRest = avail) {
   const pages = [[]];
   let used = 0;
   blocks.forEach((b, i) => {
     const h = heights[i];
     let page = pages[pages.length - 1];
-    if (used + h > avail + 0.5 && page.length) {
+    const cap = pages.length === 1 ? avail : availRest;
+    if (used + h > cap + 0.5 && page.length) {
       const carry = [];
       while (page.length && blocks[page[page.length - 1]].kwn) carry.unshift(page.pop());
       if (!page.length) { page.push(...carry); carry.length = 0; }
@@ -25,21 +27,29 @@ function paginate(blocks, heights, avail) {
 }
 
 function Page({ resume, cols, colKeys, layout, pageIndex, className = '', style }) {
+  // Some templates have a full-width header across the top of the first page.
+  const top = pageIndex === 0 && cols.top?.length ? cols.top : null;
+  const columns = colKeys.map((c) => {
+    const blocks = cols[c] || [];
+    const idx = layout ? layout[c]?.[pageIndex] || [] : pageIndex === 0 ? blocks.map((_, i) => i) : [];
+    return (
+      <div key={c} className={`col col-${c}`}>
+        <div className="col-inner">
+          {idx.filter((i) => blocks[i]).map((i) => (
+            <div key={blocks[i].key} className="blk">{blocks[i].node}</div>
+          ))}
+        </div>
+      </div>
+    );
+  });
   return (
-    <div className={`rs rs-${resume.template} page ${className}`} style={{ ...pageVars(resume), ...style }}>
-      {colKeys.map((c) => {
-        const blocks = cols[c] || [];
-        const idx = layout ? layout[c]?.[pageIndex] || [] : pageIndex === 0 ? blocks.map((_, i) => i) : [];
-        return (
-          <div key={c} className={`col col-${c}`}>
-            <div className="col-inner">
-              {idx.filter((i) => blocks[i]).map((i) => (
-                <div key={blocks[i].key} className="blk">{blocks[i].node}</div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+    <div className={`rs rs-${resume.template} page ${top ? 'has-top' : ''} ${className}`} style={{ ...pageVars(resume), ...style }}>
+      {top ? (
+        <>
+          <div className="page-top">{top.map((b) => <div key={b.key} className="blk">{b.node}</div>)}</div>
+          <div className="page-cols">{columns}</div>
+        </>
+      ) : columns}
     </div>
   );
 }
@@ -55,16 +65,21 @@ export default function ResumePages({ resume, width, print = false, onPageCount,
     const root = measureRef.current;
     if (!root) return;
     const probe = root.querySelector('.probe');
+    const probeTop = root.querySelector('.probe-top');
     const rect = probe.getBoundingClientRect();
     const next = { w: rect.width, h: rect.height, pages: 1 };
-    colKeys.forEach((c) => {
-      const col = probe.querySelector(`.col-${c}`);
+    const availIn = (pg, c) => {
+      const col = pg.querySelector(`.col-${c}`);
       const cs = getComputedStyle(col);
-      const avail = col.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 1;
+      return col.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 1;
+    };
+    colKeys.forEach((c) => {
+      const availRest = availIn(probe, c);
+      const avail = probeTop ? availIn(probeTop, c) : availRest;
       const els = root.querySelectorAll(`.flow .col-${c} .col-inner > .blk`);
       const heights = Array.from(els, (el) => el.getBoundingClientRect().height);
       const blocks = cols[c] || [];
-      next[c] = blocks.length ? paginate(blocks, heights, avail) : [[]];
+      next[c] = blocks.length ? paginate(blocks, heights, avail, availRest) : [[]];
       next.pages = Math.max(next.pages, next[c].length);
     });
     setLayout((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
@@ -103,6 +118,12 @@ export default function ResumePages({ resume, width, print = false, onPageCount,
         <div className={`rs rs-${resume.template} page probe`} style={pageVars(resume)}>
           {colKeys.map((c) => <div key={c} className={`col col-${c}`}><div className="col-inner" /></div>)}
         </div>
+        {cols.top?.length > 0 && (
+          <div className={`rs rs-${resume.template} page has-top probe-top`} style={pageVars(resume)}>
+            <div className="page-top">{cols.top.map((b) => <div key={b.key} className="blk">{b.node}</div>)}</div>
+            <div className="page-cols">{colKeys.map((c) => <div key={c} className={`col col-${c}`}><div className="col-inner" /></div>)}</div>
+          </div>
+        )}
         <div className={`rs rs-${resume.template} page flow`} style={pageVars(resume)}>
           {colKeys.map((c) => (
             <div key={c} className={`col col-${c}`}>

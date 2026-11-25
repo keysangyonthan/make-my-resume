@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { APP_NAME, CREATOR_NAME } from '../config';
 import { useAuth } from '../lib/auth';
 import { sampleResume } from '../lib/resume';
-import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
+import { TEMPLATES, TEMPLATE_KEYS, templateSample } from '../templates';
 import ResumePages from '../components/ResumePages';
 import { BrandMark, DemoBanner, GoogleIcon, Wordmark } from '../components/ui';
 import ProfileMenu from '../components/ProfileMenu';
@@ -167,7 +167,7 @@ function StyleStrip() {
     <div className="ap-strip" tabIndex={0} aria-label="Resume styles">
       {TEMPLATE_KEYS.map((k) => (
         <figure key={k} className="ap-style">
-          <div className="ap-style-thumb"><ResumePages resume={{ ...base, template: k }} width={210} maxPages={1} gap={0} /></div>
+          <div className="ap-style-thumb"><ResumePages resume={{ ...base, template: k, ...(TEMPLATES[k].accent ? { accent: TEMPLATES[k].accent } : {}), ...(TEMPLATES[k].order ? { sectionOrder: TEMPLATES[k].order } : {}), data: templateSample(base.data, k) }} width={210} maxPages={1} gap={0} /></div>
           <figcaption>
             <b>{TEMPLATES[k].name}</b>
             <span>{TEMPLATES[k].blurb}</span>

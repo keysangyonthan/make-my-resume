@@ -11,7 +11,7 @@ import ProfileMenu from '../components/ProfileMenu';
 import ResumePages from '../components/ResumePages';
 import { ItemList, SectionCard, TextInput } from '../components/FormParts';
 import { FormatBar, RichTextArea } from '../components/RichText';
-import { plainText, stripBullet } from '../lib/rich';
+import { plainText, stripBullet, upgradeResume } from '../lib/rich';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
 import { setLeaveGuard } from '../lib/leaveGuard';
@@ -78,7 +78,7 @@ export default function Editor() {
       } else if (draft) {
         clearDraft();
       }
-      setResume(r);
+      setResume(upgradeResume(r));
       setSavedAt(server.updatedAt || Date.now());
       latest.current = r;
     }).catch(() => navigate('/app', { replace: true }));
@@ -291,8 +291,8 @@ export default function Editor() {
                     <label className="check"><input type="checkbox" checked={!!e.current} onChange={(ev) => set({ current: ev.target.checked })} /> I currently work here</label>
                   </div>
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="Bengaluru / Remote" />
-                  <RichTextArea mode="bullets" label="What did you do?" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={5}
-                    help="Each line becomes a bullet point."
+                  <RichTextArea label="What did you do?" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={5}
+                    help="Tip: use the formatting bar below for bullet or numbered lists."
                     placeholder={'Led the redesign of onboarding, lifting retention by 18%\nMentored 4 designers'} />
                 </div>
               )} />
@@ -311,8 +311,8 @@ export default function Editor() {
                   <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2016" />
                   <TextInput label="End" value={e.end} onChange={(v) => set({ end: v })} placeholder="2020" />
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="New Delhi" />
-                  <RichTextArea mode="bullets" label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
-                    help="Grades, honours, relevant coursework — one per line." placeholder="CGPA 8.9 / 10" />
+                  <RichTextArea label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
+                    help="Grades, honours, relevant coursework." placeholder="CGPA 8.9 / 10" />
                 </div>
               )} />
           </SectionCard>
@@ -344,8 +344,8 @@ export default function Editor() {
                   <TextInput label="Link" optional value={e.link} onChange={(v) => set({ link: v })} placeholder="github.com/you/project" />
                   <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2023" />
                   <TextInput label="End" optional value={e.end} onChange={(v) => set({ end: v })} placeholder="2024" />
-                  <RichTextArea mode="bullets" label="Description" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={3}
-                    help="Each line becomes a bullet point." placeholder="Built with React and Firebase; 2k monthly users" />
+                  <RichTextArea label="Description" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={3}
+                    placeholder="Built with React and Firebase; 2k monthly users" />
                 </div>
               )} />
           </SectionCard>
@@ -359,8 +359,8 @@ export default function Editor() {
               render={(c, set) => (
                 <div className="grid2">
                   <TextInput full label="Section title" value={c.title} onChange={(v) => set({ title: v })} placeholder="Languages / Awards / Volunteering" />
-                  <RichTextArea mode="auto" label="Content" value={c.content} onChange={(v) => set({ content: v })} rows={3}
-                    help="A single line shows as text; multiple lines become bullet points." placeholder="English (fluent), Hindi (native)" />
+                  <RichTextArea label="Content" value={c.content} onChange={(v) => set({ content: v })} rows={3}
+                    placeholder="English (fluent), Hindi (native)" />
                 </div>
               )} />
           </SectionCard>

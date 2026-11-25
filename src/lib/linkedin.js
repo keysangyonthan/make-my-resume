@@ -3,6 +3,7 @@
 // LinkedIn's own API doesn't give this information to apps, so the PDF is the way in.
 import { buildLine, groupLines, readPdfPages } from './importResume';
 import { newId } from './store';
+import { upgradeData } from './rich';
 
 const SIDE_HEADINGS = ['contact', 'top skills', 'skills', 'languages', 'certifications', 'honors-awards', 'honors & awards', 'publications', 'patents'];
 const MAIN_HEADINGS = ['summary', 'experience', 'education', 'licenses & certifications', 'volunteer experience', 'projects'];
@@ -26,6 +27,8 @@ const shortDate = (s) => {
 };
 
 // Turns description lines into one line per bullet/paragraph (the form uses one line per bullet).
+// Description lines → text. Lines LinkedIn shows with a bullet become "- " list items;
+// everything else stays as plain lines. Wrapped lines are joined back together.
 function toBullets(lines) {
   const out = [];
   lines.forEach((l, i) => {
@@ -33,11 +36,15 @@ function toBullets(lines) {
     if (!text) return;
     const startsBullet = /^[-•●▪◦*·–]\s*/.test(text);
     const prev = lines[i - 1];
+    const last = out[out.length - 1];
+    // A line starting in lowercase carries on the previous sentence, even across a gap.
+    const continues = last && !startsBullet && /^[a-z(&]/.test(text) && !/[.!?]$/.test(last.t);
     const newPara = !prev || startsBullet || (l.y - prev.y > l.size * 1.9) || l.page !== prev.page;
     const t = text.replace(/^[-•●▪◦*·–]\s*/, '');
-    if (newPara || !out.length) out.push(t); else out[out.length - 1] += ` ${t}`;
+    if (continues || (!newPara && last)) last.t += ` ${t}`;
+    else out.push({ t, bullet: startsBullet });
   });
-  return out.join('\n');
+  return out.map((x) => (x.bullet ? `- ${x.t}` : x.t)).join('\n');
 }
 
 export function isLinkedInPdf(lines) {
@@ -163,7 +170,9 @@ export async function readLinkedInPdf(file) {
     education,
     skills: topSkills.length ? [{ id: newId(), label: '', items: topSkills.join(', ') }] : [],
     projects: [],
-    custom,
+    // Several languages / certifications / awards read best as a bullet list.
+    custom: custom.map((c) => (c.content.includes('\n') ? { ...c, content: c.content.split('\n').map((x) => `- ${x}`).join('\n') } : c)),
+    fmt: 2,
   };
   if (!fullName && !experience.length) throw new Error('We couldn’t read the details from that PDF. Please make sure it’s the “Save to PDF” file from your LinkedIn profile.');
   return data;
@@ -265,7 +274,9 @@ function parseEducation(lines) {
 
 // Combines LinkedIn details with an example resume: anything LinkedIn doesn't have stays empty
 // (rather than showing someone else's example details).
-export function resumeDataFromLinkedIn(li) {
+export function resumeDataFromLinkedIn(stored) {
+  // Imports saved before lists were optional used "every line is a bullet".
+  const li = stored?.fmt >= 2 ? stored : upgradeData(stored);
   const fresh = (arr) => (arr || []).map((x) => ({ ...x, id: newId() }));
   return {
     personal: { ...li.personal },

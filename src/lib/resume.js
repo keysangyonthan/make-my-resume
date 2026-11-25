@@ -32,6 +32,7 @@ export function blankResume({ name = '', email = '' } = {}) {
   return {
     id: newId(),
     title: 'Untitled resume',
+    fmt: 2, // descriptions: plain lines unless marked as a list (see lib/rich.js)
     template: 'modern',
     accent: ACCENTS[0],
     pageSize: 'A4',
@@ -67,20 +68,20 @@ export const SAMPLE_DATA = {
     {
       id: 'e1', role: 'Senior Product Designer', company: 'Lumen Labs', location: 'Bengaluru', start: 'Mar 2022', end: '', current: true,
       bullets:
-        'Led redesign of onboarding flow, lifting day-7 retention by 18%\nBuilt and maintained a 120-component design system adopted by 6 product teams\nMentored 4 designers and ran weekly design critiques',
+        '- Led redesign of onboarding flow, lifting day-7 retention by 18%\n- Built and maintained a 120-component design system adopted by 6 product teams\n- Mentored 4 designers and ran weekly design critiques',
     },
     {
       id: 'e2', role: 'Product Designer', company: 'Kite Payments', location: 'Mumbai', start: 'Jun 2019', end: 'Feb 2022', current: false,
       bullets:
-        'Designed merchant dashboard serving 40k+ small businesses\nCut checkout drop-off by 23% through usability testing and iterative A/B tests\nPartnered with PMs to define quarterly roadmap from research insights',
+        '- Designed merchant dashboard serving 40k+ small businesses\n- Cut checkout drop-off by 23% through usability testing and iterative A/B tests\n- Partnered with PMs to define quarterly roadmap from research insights',
     },
     {
       id: 'e3', role: 'UX Designer', company: 'Pixelcraft Studio', location: 'Pune', start: 'Jul 2017', end: 'May 2019', current: false,
-      bullets: 'Delivered web and mobile projects for 15+ clients across fintech, health and retail\nIntroduced lightweight usability testing into every project',
+      bullets: '- Delivered web and mobile projects for 15+ clients across fintech, health and retail\n- Introduced lightweight usability testing into every project',
     },
   ],
   education: [
-    { id: 'ed1', degree: 'B.Des, Interaction Design', school: 'National Institute of Design', location: 'Ahmedabad', start: '2013', end: '2017', details: 'Graduated with distinction' },
+    { id: 'ed1', degree: 'B.Des, Interaction Design', school: 'National Institute of Design', location: 'Ahmedabad', start: '2013', end: '2017', details: '- Graduated with distinction' },
   ],
   skills: [
     { id: 's1', label: 'Design', items: 'Product design, Interaction design, Prototyping, Design systems' },
@@ -88,7 +89,7 @@ export const SAMPLE_DATA = {
     { id: 's3', label: 'Research', items: 'Usability testing, Interviews, Surveys, Analytics' },
   ],
   projects: [
-    { id: 'p1', name: 'OpenType Playground', link: 'opentype.dev', start: '2023', end: '', bullets: 'Open-source tool for exploring variable fonts; 2k+ GitHub stars' },
+    { id: 'p1', name: 'OpenType Playground', link: 'opentype.dev', start: '2023', end: '', bullets: '- Open-source tool for exploring variable fonts; 2k+ GitHub stars' },
   ],
   custom: [
     { id: 'c1', title: 'Languages', content: 'English (fluent), Hindi (native), Kannada (conversational)' },

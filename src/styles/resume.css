@@ -35,9 +35,9 @@
 .rs-measure { position: absolute; left: -100000px; top: 0; visibility: hidden; pointer-events: none; }
 .page.flow { height: auto; }
 
-:where(.rs) :where(h1, h2, p, ul) { margin: 0; padding: 0; }
+:where(.rs) :where(h1, h2, p, ul, ol) { margin: 0; padding: 0; }
 .rs a { color: inherit; text-decoration: none; }
-.rs-p a, .rs-ul a { text-decoration: underline; text-decoration-thickness: 0.5pt; text-underline-offset: 1.5pt; }
+.rs-p a, .rs-ul a, .rs-ol a, .rs-tp a { text-decoration: underline; text-decoration-thickness: 0.5pt; text-underline-offset: 1.5pt; }
 
 /* Header */
 .rs-name { font-family: var(--head-font); font-size: 2.4em; line-height: 1.1; font-weight: 700; letter-spacing: -0.01em; }
@@ -72,6 +72,12 @@
 .rs-ul li::before { content: ''; position: absolute; left: 3pt; top: calc(var(--lh) * 0.5em - 1.5pt); width: 3pt; height: 3pt; border-radius: 50%; background: var(--accent); }
 
 .rs-p { margin-top: 2pt; }
+.rs-tp { margin-top: 1.5pt; }
+.rs-ul li.sub::before { background: transparent; box-shadow: inset 0 0 0 0.8pt var(--accent); }
+.rs-ol { list-style: none; }
+.rs-ol li { position: relative; padding-left: 14pt; margin-top: 1.5pt; }
+.rs-num { position: absolute; left: 0; width: 10pt; text-align: right; color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.rs-classic .rs-num { color: #333; }
 .rs-skill { margin-top: 2pt; }
 .rs-skill-label { font-weight: 600; color: #111827; }
 
@@ -215,3 +221,47 @@
   .print-page { break-after: page; page-break-after: always; }
   .print-page:last-child { break-after: auto; page-break-after: auto; }
 }
+
+/* ───────────── Full-width header (used by Highlight) ───────────── */
+.page.has-top { flex-direction: column; }
+.page-top { flex: none; padding: calc(var(--pad-y) * var(--pad-m, 1)) calc(var(--pad-x) * var(--pad-m, 1)) 0; }
+.page-cols { flex: 1; min-height: 0; display: flex; }
+.page.has-top .page-cols > .col { padding-top: calc(10pt * var(--gap-m, 1)); }
+.rs-ci { width: 0.95em; height: 0.95em; color: var(--accent); vertical-align: -0.12em; margin-right: 3pt; }
+
+/* ───────────── Highlight ───────────── */
+.rs-highlight { --fs: 9.6pt; --lh: 1.32; --pad-y: 14mm; --pad-x: 15mm; --ink: #1f1f1f; --muted: #3f3f46; --gap-section: 14pt; --gap-entry: 9pt; }
+.rs-highlight .rs-name { font-size: 2.75em; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; color: #1a1a1a; }
+.rs-highlight .rs-headline { margin-top: 4pt; font-size: 1.2em; font-weight: 600; color: var(--accent); }
+.rs-highlight .rs-contact { margin-top: 5pt; color: #1f1f1f; font-weight: 600; column-gap: 12pt; font-size: 0.98em; }
+.rs-highlight .rs-contact a { text-decoration: underline; text-underline-offset: 1.5pt; text-decoration-thickness: 0.6pt; }
+.rs-highlight .col-main { flex: 1; padding-right: calc(6mm * var(--pad-m, 1)); }
+.rs-highlight .col-side { width: 38%; flex: none; padding-left: calc(4mm * var(--pad-m, 1)); }
+.rs-highlight .rs-section { font-size: 1.42em; font-weight: 800; letter-spacing: 0; color: #1a1a1a; margin-bottom: 3pt; }
+.rs-highlight .col .blk:first-child .rs-section { margin-top: 0; }
+.rs-highlight .rs-eh-stacked .rs-eh-title { font-size: 1.2em; font-weight: 700; color: #1a1a1a; }
+.rs-highlight .rs-eh-meta { margin-top: 1pt; display: flex; flex-wrap: wrap; column-gap: 6pt; align-items: baseline; }
+.rs-highlight .rs-eh-org { color: var(--accent); font-weight: 700; font-size: 1.05em; }
+.rs-highlight .rs-eh-org a { color: inherit; }
+.rs-highlight .rs-eh-date { color: #1f1f1f; font-size: 1em; }
+.rs-highlight .rs-eh-place { color: var(--muted); }
+.rs-highlight .rs-eh-meta + * { margin-top: 2pt; }
+.rs-highlight .rs-tp strong, .rs-highlight .rs-ul strong { color: #111; }
+.rs-highlight .col-main .rs-ul li { padding-left: 12pt; margin-top: 0.5pt; }
+.rs-highlight .col-main .rs-ul li::before { background: #1f1f1f; width: 2.4pt; height: 2.4pt; left: 4pt; }
+.rs-highlight .col-main .rs-ul li.sub::before { background: transparent; box-shadow: inset 0 0 0 0.7pt #1f1f1f; }
+.rs-highlight .rs-num { color: #1f1f1f; }
+/* Right column custom sections (e.g. Key achievements): bold accent asterisks, first bold words as a heading */
+.rs-highlight .col-side .rs-ul li { padding-left: 11pt; }
+.rs-highlight .col-side .rs-ul li::before { background: #1f1f1f; width: 2.4pt; height: 2.4pt; left: 3pt; }
+.rs-highlight .col-side .rs-custom .rs-ul li { padding-left: 17pt; margin-top: 7pt; }
+.rs-highlight .col-side .rs-custom .rs-ul li::before {
+  content: '✱'; background: none; width: auto; height: auto; border-radius: 0; box-shadow: none;
+  left: 0; top: -0.12em; font-size: 1.65em; line-height: 1; color: var(--accent);
+}
+.rs-highlight .col-side .rs-custom .rs-ul li.sub::before { content: '–'; font-size: 1em; top: 0; color: inherit; }
+.rs-highlight .col-side .rs-custom .rs-ul li > span:first-child > strong { display: block; font-size: 1.05em; }
+.rs-highlight .rs-skill { margin-top: 5pt; }
+.rs-highlight .rs-skill-label { display: block; margin-bottom: 3pt; }
+.rs-highlight .rs-chips { gap: 4pt; }
+.rs-highlight .rs-chip { background: none; border: 0.9pt solid var(--accent); color: var(--accent); border-radius: 999px; padding: 0.5pt 6pt; font-size: 1.02em; }

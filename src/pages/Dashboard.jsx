@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { deleteResume, listResumes, newId, saveResume } from '../lib/store';
 import { blankResume, sampleResume } from '../lib/resume';
-import { TEMPLATES, TEMPLATE_KEYS } from '../templates';
+import { TEMPLATES, TEMPLATE_KEYS, templateSample } from '../templates';
 import ResumePages from '../components/ResumePages';
 import DocThumb from '../components/DocThumb';
 import { importResumeFile } from '../lib/importResume';
@@ -15,6 +15,18 @@ import { LinkedInCard, linkedInOf } from '../components/LinkedIn';
 import { resumeDataFromLinkedIn } from '../lib/linkedin';
 import { Brand, DemoBanner, Icon, timeAgo } from '../components/ui';
 import ProfileMenu, { ShareButton } from '../components/ProfileMenu';
+
+// How a template looks in the library: its own accent color, section order and example extras.
+function tplPreview(base, k, linked) {
+  const t = TEMPLATES[k];
+  return {
+    ...base,
+    template: k,
+    ...(t.accent ? { accent: t.accent } : {}),
+    ...(t.order ? { sectionOrder: t.order } : {}),
+    ...(linked ? {} : { data: templateSample(base.data, k) }),
+  };
+}
 
 export default function Dashboard() {
   const { user, updateProfile } = useAuth();
@@ -68,7 +80,14 @@ export default function Dashboard() {
       if (user.email) r.data.personal.email = user.email;
       r.exampleContent = true;
     }
-    if (template) { r.template = template; r.title = `${TEMPLATES[template].name} resume`; }
+    if (template) {
+      const t = TEMPLATES[template];
+      r.template = template;
+      r.title = `${t.name} resume`;
+      if (t.accent) r.accent = t.accent;
+      if (t.order) r.sectionOrder = [...t.order];
+      if (r.exampleContent) r.data = templateSample(r.data, template);
+    }
     try {
       await saveResume(user.uid, r);
       navigate(`/app/edit/${r.id}`);
@@ -198,7 +217,7 @@ export default function Dashboard() {
             {TEMPLATE_KEYS.map((k) => (
               <button key={k} className={`tpl-card ${creating === k ? 'busy' : ''}`} onClick={() => create({ template: k })} disabled={!!creating}>
                 <div className="tpl-card-thumb">
-                  <ResumePages resume={{ ...preview, template: k }} width={150} maxPages={1} gap={0} />
+                  <ResumePages resume={tplPreview(preview, k, !!linked)} width={150} maxPages={1} gap={0} />
                   <span className="tpl-card-cta">{creating === k ? 'Creating…' : 'Use template'}</span>
                 </div>
                 <div className="tpl-card-name">{TEMPLATES[k].name}</div>

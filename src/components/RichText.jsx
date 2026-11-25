@@ -16,10 +16,8 @@ const setActive = (a) => { if (active?.editor !== a?.editor || active?.mode !== 
 const useActive = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => active);
 
 // mode:
-//  'rich'    – paragraphs, and bullet lists with the list button (Summary)
-//  'bullets' – every line is a bullet (job / school / project descriptions)
-//  'auto'    – one line is text, several lines are bullets (custom sections)
-//  'plain'   – no lists (skills)
+//  'rich'  – paragraphs, plus bullet / numbered lists and indenting from the formatting bar
+//  'plain' – no lists (skills)
 export function RichTextArea({ label, value, onChange, placeholder, optional, help, full = true, rows = 4, mode = 'rich' }) {
   const id = useId();
   const lists = mode === 'rich';
@@ -31,14 +29,18 @@ export function RichTextArea({ label, value, onChange, placeholder, optional, he
     extensions: [
       StarterKit.configure({
         heading: false, codeBlock: false, blockquote: false, horizontalRule: false, code: false, strike: false,
-        orderedList: false, bulletList: lists ? {} : false, listItem: lists ? {} : false,
+        orderedList: lists ? {} : false, bulletList: lists ? {} : false, listItem: lists ? {} : false,
       }),
       Underline,
       LinkExt.configure({ openOnClick: false, autolink: false, linkOnPaste: true, HTMLAttributes: { rel: 'noopener noreferrer' } }),
       Placeholder.configure({ placeholder: placeholder || '' }),
     ],
     content: toEditorHtml(value, { lists }),
-    editorProps: { attributes: { id, class: 'rt-input', role: 'textbox', 'aria-multiline': 'true', ...(label ? { 'aria-label': label } : {}) } },
+    editorProps: {
+      // keep the cursor clear of the floating formatting bar
+      scrollMargin: { top: 24, bottom: 110, left: 0, right: 0 },
+      scrollThreshold: { top: 24, bottom: 110, left: 0, right: 0 },
+      attributes: { id, class: 'rt-input', role: 'textbox', 'aria-multiline': 'true', ...(label ? { 'aria-label': label } : {}) } },
     onUpdate: ({ editor: ed }) => {
       const v = fromEditorJson(ed.getJSON());
       last.current = v;
@@ -72,6 +74,9 @@ const I = {
   italic: <path d="M19 4h-9M14 20H5M15 4L9 20" />,
   underline: <path d="M7 4v7a5 5 0 0010 0V4M5 20h14" />,
   list: <path d="M10 6h10M10 12h10M10 18h10M5 6h.01M5 12h.01M5 18h.01" />,
+  ol: <path d="M10 6h10M10 12h10M10 18h10M4 4.5h1.5V9M4 9h3M4 14.5a1.5 1.5 0 013 0c0 1.5-3 2-3 4h3" />,
+  indent: <path d="M4 6h16M10 12h10M4 18h16M4 9.5l3 2.5-3 2.5" />,
+  outdent: <path d="M4 6h16M10 12h10M4 18h16M7 9.5L4 12l3 2.5" />,
   link: <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" />,
   clear: <path d="M4 7V5h12v2M10 5l-3 14M13 19h-5M15 14l5 5M20 14l-5 5" />,
   undo: <path d="M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-3" />,
@@ -82,11 +87,7 @@ const Svg = ({ d }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="non
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const key = (k) => (isMac ? `⌘${k}` : `Ctrl+${k}`);
 
-const LIST_OFF = {
-  bullets: 'Every line here is already a bullet point',
-  auto: 'Several lines here become bullet points automatically',
-  plain: 'Lists aren’t used here',
-};
+const LIST_OFF = 'Lists aren’t used here — separate skills with commas';
 
 // The floating formatting bar. Put it once at the end of the scrolling form.
 export function FormatBar() {
@@ -123,6 +124,7 @@ export function FormatBar() {
   const on = (name) => !!editor?.isActive(name);
   const run = (fn) => (e) => { e.preventDefault(); if (editor) fn(editor.chain().focus()).run(); };
   const listOk = a?.mode === 'rich';
+  const inList = on('bulletList') || on('orderedList');
 
   const openLink = (e) => {
     e.preventDefault();
@@ -172,8 +174,13 @@ export function FormatBar() {
           <Btn name="italic" icon={I.italic} title={`Italic (${key('I')})`} onDown={run((c) => c.toggleItalic())} />
           <Btn name="underline" icon={I.underline} title={`Underline (${key('U')})`} onDown={run((c) => c.toggleUnderline())} />
           <span className="fbar-sep" />
-          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list' : LIST_OFF[a?.mode] || 'Bullet list'}
+          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list' : LIST_OFF}
             disabled={!listOk} onDown={run((c) => c.toggleBulletList())} />
+          <Btn name={listOk ? 'orderedList' : null} icon={I.ol} title={listOk ? 'Numbered list' : LIST_OFF}
+            disabled={!listOk} onDown={run((c) => c.toggleOrderedList())} />
+          <Btn icon={I.outdent} title="Decrease indent (Shift+Tab)" disabled={!listOk || !editor?.can().liftListItem('listItem')} onDown={run((c) => c.liftListItem('listItem'))} />
+          <Btn icon={I.indent} title={listOk && !inList ? 'Increase indent — works inside a list (Tab)' : 'Increase indent (Tab)'} disabled={!listOk || !editor?.can().sinkListItem('listItem')} onDown={run((c) => c.sinkListItem('listItem'))} />
+          <span className="fbar-sep" />
           <Btn name="link" icon={I.link} title="Add link" onDown={openLink} />
           <Btn icon={I.clear} title="Clear formatting" onDown={run((c) => c.unsetAllMarks())} />
           <span className="fbar-sep" />

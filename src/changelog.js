@@ -3,6 +3,18 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.23',
+    date: '2026-11-25',
+    title: 'Lists your way & a new Highlight template',
+    tag: 'New',
+    items: [
+      'Descriptions are no longer turned into bullet points automatically. Use the formatting bar to add bullet lists, numbered lists, and indent or outdent list items (Tab / Shift+Tab work too).',
+      'Your existing resumes keep their bullet points — select the lines and press the list button to turn them off.',
+      'New Highlight template: a bold full-width header, experience on the left, and key achievements, education and skill tags on the right.',
+      'LinkedIn import now joins lines that LinkedIn wrapped, instead of splitting them into separate points.',
+    ],
+  },
+  {
     version: '1.22',
     date: '2026-11-25',
     title: 'Formatting bar',

@@ -3,6 +3,7 @@ import {
   addDoc, collection, doc, getDoc, getDocs, setDoc, deleteDoc, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
+import { upgradeResume } from './rich';
 
 const LS_KEY = (uid) => `rk_resumes_${uid}`;
 const lsRead = (uid) => { try { return JSON.parse(localStorage.getItem(LS_KEY(uid))) || {}; } catch { return {}; } };
@@ -16,16 +17,16 @@ export const newId = () =>
 
 export async function listResumes(uid) {
   if (!isFirebaseConfigured) {
-    return Object.values(lsRead(uid)).sort((a, b) => b.updatedAt - a.updatedAt);
+    return Object.values(lsRead(uid)).map(upgradeResume).sort((a, b) => b.updatedAt - a.updatedAt);
   }
   const snap = await getDocs(query(col(uid), orderBy('updatedAt', 'desc')));
-  return snap.docs.map((d) => ({ ...d.data(), id: d.id, updatedAt: toMillis(d.data().updatedAt) }));
+  return snap.docs.map((d) => upgradeResume({ ...d.data(), id: d.id, updatedAt: toMillis(d.data().updatedAt) }));
 }
 
 export async function getResume(uid, id) {
-  if (!isFirebaseConfigured) return lsRead(uid)[id] || null;
+  if (!isFirebaseConfigured) return upgradeResume(lsRead(uid)[id] || null);
   const d = await getDoc(doc(col(uid), id));
-  return d.exists() ? { ...d.data(), id: d.id, updatedAt: toMillis(d.data().updatedAt) } : null;
+  return d.exists() ? upgradeResume({ ...d.data(), id: d.id, updatedAt: toMillis(d.data().updatedAt) }) : null;
 }
 
 export async function saveResume(uid, resume) {

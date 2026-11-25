@@ -1,5 +1,7 @@
 // Light text formatting stored inside ordinary strings, so resumes stay simple text.
-//   **bold**   _italic_   ++underline++   [link text](https://…)   "- " at the start of a line = bullet
+//   **bold**   _italic_   ++underline++   [link text](https://…)
+//   Lines: "- item" = bullet, "1. item" = numbered, two spaces in front per indent level.
+//   Every other line is a plain paragraph.
 // Literal * _ [ ] \ and ++ typed by the person are saved with a backslash in front.
 
 const ESC = /[\\*_[\]]/g;
@@ -27,7 +29,7 @@ export function parseInline(s, marks = {}) {
   const flush = () => { if (buf) { out.push({ text: buf, ...marks }); buf = ''; } };
   for (let i = 0; i < (s || '').length; i++) {
     const c = s[i];
-    if (c === '\\' && i + 1 < s.length && /[\\*_+[\]()]/.test(s[i + 1])) { buf += s[i + 1]; i++; continue; }
+    if (c === '\\' && i + 1 < s.length && /[\\*_+[\]().\-•]/.test(s[i + 1])) { buf += s[i + 1]; i++; continue; }
     const tryMark = (mark, key, boundary) => {
       if (!s.startsWith(mark, i) || marks[key]) return false;
       if (boundary && alnum(s[i - 1])) return false;
@@ -57,9 +59,57 @@ export function parseInline(s, marks = {}) {
 
 export const plainText = (s) => parseInline(s).map((x) => x.text).join('');
 
-const BULLET = /^\s*[-•*]\s+/;
-export const isBulletLine = (l) => BULLET.test(l);
-export const stripBullet = (l) => l.replace(BULLET, '');
+// ---- lines & lists ----
+const LIST_LINE = /^(\s*)(?:([-•*])|(\d+)[.)])\s+(.*)$/;
+// → { kind: 'p' | 'ul' | 'ol', level, text }
+export function parseLine(l) {
+  const m = LIST_LINE.exec(l);
+  if (!m) return { kind: 'p', level: 0, text: l.trim() };
+  return { kind: m[2] ? 'ul' : 'ol', level: Math.min(4, Math.floor(m[1].replace(/\t/g, '  ').length / 2)), text: m[4].trim() };
+}
+export const isBulletLine = (l) => LIST_LINE.test(l);
+export const stripBullet = (l) => parseLine(l).text;
+
+// Text → blocks for the resume, with numbers worked out: { kind, level, text, n }
+export function textBlocks(text) {
+  const out = [];
+  const counters = [];
+  let prev = null;
+  for (const raw of (text || '').split('\n')) {
+    if (!raw.trim()) { prev = null; counters.length = 0; continue; }
+    const b = parseLine(raw);
+    if (!b.text) continue;
+    if (b.kind === 'p') { counters.length = 0; prev = b; out.push(b); continue; }
+    counters.length = Math.min(counters.length, b.level + 1);
+    if (b.kind === 'ol') {
+      const continues = prev && prev.kind !== 'p' && (prev.level > b.level || (prev.level === b.level && prev.kind === 'ol'));
+      counters[b.level] = continues && counters[b.level] ? counters[b.level] + 1 : 1;
+      b.n = counters[b.level];
+    } else counters[b.level] = 0;
+    prev = b;
+    out.push(b);
+  }
+  return out;
+}
+
+// Resumes made before lists were optional: every description line was a bullet.
+const asBullets = (t) => (t || '').split('\n').map((l) => l.replace(/^\s*(?:[-•]\s*|\*\s+)/, '').trim()).filter(Boolean).map((l) => `- ${l}`).join('\n');
+export const FORMAT_VERSION = 2;
+export function upgradeData(data) {
+  if (!data) return data;
+  const map = (arr, key) => (arr || []).map((x) => ({ ...x, [key]: asBullets(x[key]) }));
+  return {
+    ...data,
+    experience: map(data.experience, 'bullets'),
+    education: map(data.education, 'details'),
+    projects: map(data.projects, 'bullets'),
+    custom: (data.custom || []).map((c) => {
+      const n = (c.content || '').split('\n').filter((l) => l.trim()).length;
+      return n > 1 ? { ...c, content: asBullets(c.content) } : c;
+    }),
+  };
+}
+export const upgradeResume = (r) => (!r || r.fmt >= FORMAT_VERSION ? r : { ...r, fmt: FORMAT_VERSION, data: upgradeData(r.data) });
 
 const escHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -74,21 +124,23 @@ function inlineHtml(s) {
   }).join('');
 }
 
-// Stored text → HTML for the editor. In "lines" fields every line is a bullet already.
+// Stored text → HTML for the editor (nested bullet / numbered lists).
 export function toEditorHtml(text, { lists = true } = {}) {
-  const ls = (text || '').split('\n');
   let html = '';
-  let inList = false;
-  for (const l of ls) {
-    if (lists && isBulletLine(l)) {
-      if (!inList) { html += '<ul>'; inList = true; }
-      html += `<li><p>${inlineHtml(stripBullet(l))}</p></li>`;
-    } else {
-      if (inList) { html += '</ul>'; inList = false; }
-      html += `<p>${inlineHtml(lists ? l : l.replace(/^\s*(?:[-•]\s*|\*\s+)/, ''))}</p>`;
-    }
+  const stack = []; // open list tags, one per level
+  const closeTo = (n) => { while (stack.length > n) html += `</li></${stack.pop()}>`; };
+  for (const raw of (text || '').split('\n')) {
+    const b = lists ? parseLine(raw) : { kind: 'p', level: 0, text: raw };
+    if (b.kind === 'p') { closeTo(0); html += `<p>${inlineHtml(b.text)}</p>`; continue; }
+    const lvl = Math.min(b.level, stack.length);
+    closeTo(lvl + 1);
+    if (stack.length === lvl + 1) {
+      if (stack[lvl] === b.kind) html += '</li><li>';
+      else { closeTo(lvl); html += `<${b.kind}><li>`; stack.push(b.kind); }
+    } else { html += `<${b.kind}><li>`; stack.push(b.kind); }
+    html += `<p>${inlineHtml(b.text)}</p>`;
   }
-  if (inList) html += '</ul>';
+  closeTo(0);
   return html || '<p></p>';
 }
 
@@ -116,18 +168,24 @@ function inlineText(nodes = []) {
   return out;
 }
 
+// A plain line that happens to start like a list item gets a backslash so it stays plain.
+const keepPlain = (l) => l.replace(/^(\s*)(\d+)([.)]\s)/, '$1$2\\$3').replace(/^(\s*)([-•])(\s)/, '$1\\$2$3');
+
 export function fromEditorJson(doc) {
   const lines = [];
-  for (const node of doc.content || []) {
-    if (node.type === 'bulletList' || node.type === 'orderedList') {
-      for (const li of node.content || []) {
-        for (const p of li.content || []) {
-          if (p.type === 'paragraph') inlineText(p.content).split('\n').forEach((x) => lines.push(`- ${x}`));
-        }
+  const walkList = (list, level) => {
+    let n = list.attrs?.start || 1;
+    for (const li of list.content || []) {
+      for (const child of li.content || []) {
+        if (child.type === 'bulletList' || child.type === 'orderedList') { walkList(child, level + 1); continue; }
+        const text = inlineText(child.content).split('\n').join(' ');
+        lines.push(`${'  '.repeat(level)}${list.type === 'orderedList' ? `${n++}.` : '-'} ${text}`);
       }
-    } else {
-      inlineText(node.content).split('\n').forEach((x) => lines.push(x));
     }
+  };
+  for (const node of doc.content || []) {
+    if (node.type === 'bulletList' || node.type === 'orderedList') walkList(node, 0);
+    else inlineText(node.content).split('\n').forEach((x) => lines.push(keepPlain(x)));
   }
   while (lines.length && lines[lines.length - 1] === '') lines.pop();
   return lines.join('\n');

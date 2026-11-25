@@ -1,11 +1,17 @@
 // Resume templates. Every template is a set of "columns" of small blocks.
 // Blocks are measured and then distributed onto pages, so the preview and the
 // exported PDF break pages in exactly the same places.
-import { lines, dateRange, isEmptyEntry } from '../lib/resume';
-import { parseInline, isBulletLine, stripBullet } from '../lib/rich';
+import { dateRange, isEmptyEntry } from '../lib/resume';
+import { parseInline, textBlocks, upgradeResume } from '../lib/rich';
 
 export const TEMPLATES = {
   modern: { name: 'Modern', blurb: 'Clean sans-serif with accent color', columns: ['main'], fs: 10 },
+  // Full-width header, then experience on the left and achievements / education / skills on the right.
+  highlight: {
+    name: 'Highlight', blurb: 'Bold headings, achievements column', columns: ['main', 'side'], fs: 9.6,
+    top: true, side: ['custom', 'education', 'skills'], accent: '#e5372a',
+    order: ['summary', 'custom', 'experience', 'education', 'skills', 'projects'],
+  },
   classic: { name: 'Classic', blurb: 'Timeless serif, centered header', columns: ['main'], fs: 10.5 },
   compact: { name: 'Concise', blurb: 'Tight spacing — fits more on one page', columns: ['main'], fs: 9 },
   spacious: { name: 'Spacious', blurb: 'Airy layout, larger type', columns: ['main'], fs: 11 },
@@ -67,7 +73,18 @@ function contactItems(p) {
 
 const Link = ({ item }) => (item.href ? <a href={item.href}>{item.text}</a> : <span>{item.text}</span>);
 
-function Header({ p, withContact }) {
+const CONTACT_ICONS = {
+  phone: <path d="M5 4h3l2 5-2.5 1.5a11 11 0 005 5L14 13l5 2v3a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2" />,
+  email: <><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 006 0v-1a10 10 0 10-4 8" /></>,
+  location: <><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></>,
+  website: <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" />,
+};
+CONTACT_ICONS.linkedin = CONTACT_ICONS.website;
+const ContactIcon = ({ k }) => (
+  <svg className="rs-ci" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{CONTACT_ICONS[k]}</svg>
+);
+
+function Header({ p, withContact, icons }) {
   const items = contactItems(p);
   return (
     <header className="rs-header">
@@ -78,6 +95,7 @@ function Header({ p, withContact }) {
           {items.map((it, i) => (
             <span key={it.k} className="rs-contact-item">
               {i > 0 && <span className="rs-sep" aria-hidden>•</span>}
+              {icons && <ContactIcon k={it.k} />}
               <Link item={it} />
             </span>
           ))}
@@ -89,7 +107,22 @@ function Header({ p, withContact }) {
 
 const SectionTitle = ({ children }) => <h2 className="rs-section">{children}</h2>;
 
-function EntryHead({ title, sub, date }) {
+function EntryHead({ title, sub, date, org, place, stacked }) {
+  // "Stacked": title on its own line, then company (in the accent color) and dates.
+  if (stacked) {
+    return (
+      <div className="rs-eh rs-eh-stacked">
+        <div className="rs-eh-title">{title}</div>
+        {(org || date || place) && (
+          <div className="rs-eh-meta">
+            {org && <span className="rs-eh-org">{org}</span>}
+            {date && <span className="rs-eh-date">{date}</span>}
+            {place && <span className="rs-eh-place">{place}</span>}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="rs-eh">
       <div className="rs-eh-row">
@@ -136,9 +169,13 @@ function splitSegs(text) {
     .filter((c) => c.length);
 }
 
-const Bullet = ({ children }) => (
-  <ul className="rs-ul"><li>{children}</li></ul>
-);
+// One line of a description: a paragraph, a bullet, or a numbered item (indented by level).
+function TextBlock({ b }) {
+  const indent = b.level ? { marginLeft: `${b.level * 11}pt` } : undefined;
+  if (b.kind === 'ul') return <ul className="rs-ul" style={indent}><li className={b.level ? 'sub' : undefined}><Rich text={b.text} /></li></ul>;
+  if (b.kind === 'ol') return <ol className="rs-ol" style={indent}><li><span className="rs-num">{b.level % 2 ? String.fromCharCode(96 + ((b.n - 1) % 26) + 1) : b.n}.</span><Rich text={b.text} /></li></ol>;
+  return <p className="rs-tp" style={indent}><Rich text={b.text} /></p>;
+}
 
 const join = (...parts) => parts.filter((x) => x && String(x).trim()).join(' · ');
 
@@ -149,19 +186,10 @@ function sectionBlocks(key, data, ctx) {
   const title = (t) => push('title', <SectionTitle>{t}</SectionTitle>, true);
 
   if (key === 'summary') {
-    // Paragraphs are separated by blank lines; lines starting with "- " are bullets.
-    const parts = [];
-    let para = [];
-    const end = () => { if (para.length) { parts.push({ p: para.join(' ') }); para = []; } };
-    (data.summary || '').split('\n').forEach((l) => {
-      if (!l.trim()) end();
-      else if (isBulletLine(l)) { end(); const t = stripBullet(l).trim(); if (t) parts.push({ b: t }); }
-      else para.push(l.trim());
-    });
-    end();
-    if (!parts.length) return out;
+    const bl = textBlocks(data.summary);
+    if (!bl.length) return out;
     title('Summary');
-    parts.forEach((x, i) => push(`p${i}`, x.b ? <Bullet><Rich text={x.b} /></Bullet> : <p className="rs-p"><Rich text={x.p} /></p>));
+    bl.forEach((b, i) => push(`p${i}`, <TextBlock b={b} />));
   }
 
   if (key === 'experience') {
@@ -169,9 +197,9 @@ function sectionBlocks(key, data, ctx) {
     if (!items.length) return out;
     title('Experience');
     items.forEach((e) => {
-      const b = lines(e.bullets);
-      push(`${e.id}-h`, <EntryHead title={e.role || e.company} sub={join(e.role ? e.company : '', e.location)} date={dateRange(e.start, e.end, e.current)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
+      const b = textBlocks(e.bullets);
+      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} org={e.role ? e.company : ''} place={e.location} title={e.role || e.company} sub={join(e.role ? e.company : '', e.location)} date={dateRange(e.start, e.end, e.current)} />, b.length > 0);
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <TextBlock b={t} />));
     });
   }
 
@@ -180,9 +208,9 @@ function sectionBlocks(key, data, ctx) {
     if (!items.length) return out;
     title('Education');
     items.forEach((e) => {
-      const b = lines(e.details);
-      push(`${e.id}-h`, <EntryHead title={e.degree || e.school} sub={join(e.degree ? e.school : '', e.location)} date={dateRange(e.start, e.end)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
+      const b = textBlocks(e.details);
+      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} org={e.degree ? e.school : ''} place={e.location} title={e.degree || e.school} sub={join(e.degree ? e.school : '', e.location)} date={dateRange(e.start, e.end)} />, b.length > 0);
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <TextBlock b={t} />));
     });
   }
 
@@ -191,10 +219,10 @@ function sectionBlocks(key, data, ctx) {
     if (!items.length) return out;
     title('Projects');
     items.forEach((e) => {
-      const b = lines(e.bullets);
+      const b = textBlocks(e.bullets);
       const sub = e.link ? <a href={href(e.link)}>{e.link}</a> : null;
-      push(`${e.id}-h`, <EntryHead title={e.name} sub={sub} date={dateRange(e.start, e.end)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
+      push(`${e.id}-h`, <EntryHead stacked={ctx.stacked} org={sub} title={e.name} sub={sub} date={dateRange(e.start, e.end)} />, b.length > 0);
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <TextBlock b={t} />));
     });
   }
 
@@ -224,11 +252,10 @@ function sectionBlocks(key, data, ctx) {
 
   if (key === 'custom') {
     (data.custom || []).forEach((c) => {
-      const l = lines(c.content);
+      const l = textBlocks(c.content);
       if (!c.title && !l.length) return;
       if (c.title) push(`${c.id}-t`, <SectionTitle>{c.title}</SectionTitle>, l.length > 0);
-      if (l.length === 1) push(`${c.id}-p`, <p className="rs-p"><Rich text={l[0]} /></p>);
-      else l.forEach((t, i) => push(`${c.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
+      l.forEach((t, i) => push(`${c.id}-b${i}`, <div className="rs-custom"><TextBlock b={t} /></div>));
     });
   }
 
@@ -250,12 +277,37 @@ function ContactBlock({ p }) {
   );
 }
 
-// Returns { main: Block[], side?: Block[] }
-export function buildColumns(resume) {
+// Example "Key achievements" that show off the Highlight template.
+export const SAMPLE_ACHIEVEMENTS = {
+  id: 'c0', title: 'Key achievements',
+  content: '- **Faster onboarding** **+18% day-7 retention** after redesigning the first-run flow\n- **Design system** **120 components** adopted by 6 product teams\n- **Red Dot Award** Communication Design, 2021',
+};
+// Example content for a template (Highlight adds a Key achievements section).
+export function templateSample(data, key) {
+  const custom = data.custom || [];
+  // Only for the built-in example (its Languages section has id "c1"), and only once.
+  if (!TEMPLATES[key]?.top || !custom.some((c) => c.id === 'c1') || custom.some((c) => c.id === 'c0')) return data;
+  return { ...data, custom: [SAMPLE_ACHIEVEMENTS, ...custom.filter((c) => c.title !== 'Awards')] };
+}
+
+// Returns { top?: Block[], main: Block[], side?: Block[] }
+export function buildColumns(input) {
+  const resume = upgradeResume(input);
   const { data, template, sectionOrder, hidden = [] } = resume;
   const tpl = TEMPLATES[template] || TEMPLATES.modern;
   const order = (sectionOrder || []).filter((k) => !hidden.includes(k));
   const p = data.personal || {};
+
+  if (tpl.top) {
+    const top = [{ key: 'header', node: <Header p={p} withContact icons />, kwn: false }];
+    const main = [];
+    const side = [];
+    order.forEach((k) => {
+      if (tpl.side.includes(k)) side.push(...sectionBlocks(k, data, { chips: true, stacked: true }));
+      else main.push(...sectionBlocks(k, data, { stacked: true }));
+    });
+    return { top, main, side };
+  }
 
   if (tpl.columns.length === 1) {
     const main = [{ key: 'header', node: <Header p={p} withContact />, kwn: false }];
