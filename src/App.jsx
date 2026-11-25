@@ -3,7 +3,8 @@ import { Navigate, Outlet, RouterProvider, createBrowserRouter, createHashRouter
 import { AuthProvider, useAuth } from './lib/auth';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
+// The editor (and its text-formatting library) loads when a resume is opened.
+const Editor = lazy(() => import('./pages/Editor'));
 // The document editor (and its text-editing library) loads only when someone opens an uploaded resume.
 const DocEditor = lazy(() => import('./pages/DocEditor'));
 import Changelog from './pages/Changelog';
@@ -43,7 +44,7 @@ const routes = [
       { path: '/', element: <Landing /> },
       { path: '/changelog', element: <Changelog /> },
       { path: '/app', element: <Protected><Dashboard /></Protected> },
-      { path: '/app/edit/:id', element: <Protected><Editor /></Protected> },
+      { path: '/app/edit/:id', element: <Protected><Suspense fallback={<div className="center-screen"><div className="spinner" /></div>}><Editor /></Suspense></Protected> },
       { path: '/app/doc/:id', element: <Protected><DocRoute /></Protected> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

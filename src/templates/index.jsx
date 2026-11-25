@@ -2,6 +2,7 @@
 // Blocks are measured and then distributed onto pages, so the preview and the
 // exported PDF break pages in exactly the same places.
 import { lines, dateRange, isEmptyEntry } from '../lib/resume';
+import { parseInline, isBulletLine, stripBullet } from '../lib/rich';
 
 export const TEMPLATES = {
   modern: { name: 'Modern', blurb: 'Clean sans-serif with accent color', columns: ['main'], fs: 10 },
@@ -100,6 +101,41 @@ function EntryHead({ title, sub, date }) {
   );
 }
 
+// Formatted text: **bold**, _italic_, ++underline++, [links](…).
+function renderSegs(segs) {
+  return segs.map((g, i) => {
+    let n = g.text;
+    if (g.i) n = <em>{n}</em>;
+    if (g.b) n = <strong>{n}</strong>;
+    if (g.u) n = <u>{n}</u>;
+    if (g.href) n = <a href={href(g.href)}>{n}</a>;
+    return <span key={i}>{n}</span>;
+  });
+}
+const Rich = ({ text }) => renderSegs(parseInline(text));
+
+// Split formatted text on commas, keeping formatting (for skill chips).
+function splitSegs(text) {
+  const chips = [[]];
+  for (const g of parseInline(text)) {
+    g.text.split(',').forEach((part, i) => {
+      if (i > 0) chips.push([]);
+      if (part) chips[chips.length - 1].push({ ...g, text: part });
+    });
+  }
+  return chips
+    .map((c) => {
+      if (!c.length) return c;
+      const first = { ...c[0], text: c[0].text.replace(/^\s+/, '') };
+      const rest = c.slice(1);
+      const all = [first, ...rest];
+      const last = all[all.length - 1];
+      all[all.length - 1] = { ...last, text: last.text.replace(/\s+$/, '') };
+      return all.filter((x) => x.text);
+    })
+    .filter((c) => c.length);
+}
+
 const Bullet = ({ children }) => (
   <ul className="rs-ul"><li>{children}</li></ul>
 );
@@ -113,10 +149,19 @@ function sectionBlocks(key, data, ctx) {
   const title = (t) => push('title', <SectionTitle>{t}</SectionTitle>, true);
 
   if (key === 'summary') {
-    const paras = (data.summary || '').split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
-    if (!paras.length) return out;
+    // Paragraphs are separated by blank lines; lines starting with "- " are bullets.
+    const parts = [];
+    let para = [];
+    const end = () => { if (para.length) { parts.push({ p: para.join(' ') }); para = []; } };
+    (data.summary || '').split('\n').forEach((l) => {
+      if (!l.trim()) end();
+      else if (isBulletLine(l)) { end(); const t = stripBullet(l).trim(); if (t) parts.push({ b: t }); }
+      else para.push(l.trim());
+    });
+    end();
+    if (!parts.length) return out;
     title('Summary');
-    paras.forEach((s, i) => push(`p${i}`, <p className="rs-p">{s}</p>));
+    parts.forEach((x, i) => push(`p${i}`, x.b ? <Bullet><Rich text={x.b} /></Bullet> : <p className="rs-p"><Rich text={x.p} /></p>));
   }
 
   if (key === 'experience') {
@@ -126,7 +171,7 @@ function sectionBlocks(key, data, ctx) {
     items.forEach((e) => {
       const b = lines(e.bullets);
       push(`${e.id}-h`, <EntryHead title={e.role || e.company} sub={join(e.role ? e.company : '', e.location)} date={dateRange(e.start, e.end, e.current)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet>{t}</Bullet>));
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
     });
   }
 
@@ -137,7 +182,7 @@ function sectionBlocks(key, data, ctx) {
     items.forEach((e) => {
       const b = lines(e.details);
       push(`${e.id}-h`, <EntryHead title={e.degree || e.school} sub={join(e.degree ? e.school : '', e.location)} date={dateRange(e.start, e.end)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet>{t}</Bullet>));
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
     });
   }
 
@@ -149,7 +194,7 @@ function sectionBlocks(key, data, ctx) {
       const b = lines(e.bullets);
       const sub = e.link ? <a href={href(e.link)}>{e.link}</a> : null;
       push(`${e.id}-h`, <EntryHead title={e.name} sub={sub} date={dateRange(e.start, e.end)} />, b.length > 0);
-      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet>{t}</Bullet>));
+      b.forEach((t, i) => push(`${e.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
     });
   }
 
@@ -159,18 +204,18 @@ function sectionBlocks(key, data, ctx) {
     title('Skills');
     items.forEach((s) => {
       if (ctx.chips) {
-        const chips = s.items.split(',').map((x) => x.trim()).filter(Boolean);
+        const chips = splitSegs(s.items);
         push(s.id, (
           <div className="rs-skill">
             {s.label && <div className="rs-skill-label">{s.label}</div>}
-            <div className="rs-chips">{chips.map((c, i) => <span key={i} className="rs-chip">{c}</span>)}</div>
+            <div className="rs-chips">{chips.map((c, i) => <span key={i} className="rs-chip">{renderSegs(c)}</span>)}</div>
           </div>
         ));
       } else {
         push(s.id, (
           <div className="rs-skill">
             {s.label && <span className="rs-skill-label">{s.label}: </span>}
-            <span>{s.items}</span>
+            <span><Rich text={s.items.replace(/\n+/g, ' ')} /></span>
           </div>
         ));
       }
@@ -182,8 +227,8 @@ function sectionBlocks(key, data, ctx) {
       const l = lines(c.content);
       if (!c.title && !l.length) return;
       if (c.title) push(`${c.id}-t`, <SectionTitle>{c.title}</SectionTitle>, l.length > 0);
-      if (l.length === 1) push(`${c.id}-p`, <p className="rs-p">{l[0]}</p>);
-      else l.forEach((t, i) => push(`${c.id}-b${i}`, <Bullet>{t}</Bullet>));
+      if (l.length === 1) push(`${c.id}-p`, <p className="rs-p"><Rich text={l[0]} /></p>);
+      else l.forEach((t, i) => push(`${c.id}-b${i}`, <Bullet><Rich text={t} /></Bullet>));
     });
   }
 

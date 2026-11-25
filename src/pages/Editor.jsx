@@ -9,7 +9,9 @@ import { PAGE_SIZES } from '../templates';
 import CustomiseLook from '../components/CustomiseLook';
 import ProfileMenu from '../components/ProfileMenu';
 import ResumePages from '../components/ResumePages';
-import { ItemList, SectionCard, TextArea, TextInput } from '../components/FormParts';
+import { ItemList, SectionCard, TextInput } from '../components/FormParts';
+import { FormatBar, RichTextArea } from '../components/RichText';
+import { plainText, stripBullet } from '../lib/rich';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
 import { setLeaveGuard } from '../lib/leaveGuard';
@@ -268,7 +270,7 @@ export default function Editor() {
       case 'summary':
         return (
           <SectionCard {...common}>
-            <TextArea value={data.summary} onChange={(v) => setData('summary', v)} rows={4}
+            <RichTextArea mode="rich" value={data.summary} onChange={(v) => setData('summary', v)} rows={4}
               placeholder="e.g. Product designer with 7+ years of experience building consumer apps used by millions…" />
           </SectionCard>
         );
@@ -289,7 +291,7 @@ export default function Editor() {
                     <label className="check"><input type="checkbox" checked={!!e.current} onChange={(ev) => set({ current: ev.target.checked })} /> I currently work here</label>
                   </div>
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="Bengaluru / Remote" />
-                  <TextArea label="What did you do?" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={5}
+                  <RichTextArea mode="bullets" label="What did you do?" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={5}
                     help="Each line becomes a bullet point."
                     placeholder={'Led the redesign of onboarding, lifting retention by 18%\nMentored 4 designers'} />
                 </div>
@@ -309,7 +311,7 @@ export default function Editor() {
                   <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2016" />
                   <TextInput label="End" value={e.end} onChange={(v) => set({ end: v })} placeholder="2020" />
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="New Delhi" />
-                  <TextArea label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
+                  <RichTextArea mode="bullets" label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
                     help="Grades, honours, relevant coursework — one per line." placeholder="CGPA 8.9 / 10" />
                 </div>
               )} />
@@ -324,7 +326,7 @@ export default function Editor() {
               render={(s, set) => (
                 <div className="grid2">
                   <TextInput full label="Group name" optional value={s.label} onChange={(v) => set({ label: v })} placeholder="Languages, Tools, Design…" />
-                  <TextArea label="Skills" value={s.items} onChange={(v) => set({ items: v })} rows={2}
+                  <RichTextArea mode="plain" label="Skills" value={s.items} onChange={(v) => set({ items: v })} rows={2}
                     help="Separate with commas." placeholder="Figma, Prototyping, User research" />
                 </div>
               )} />
@@ -342,7 +344,7 @@ export default function Editor() {
                   <TextInput label="Link" optional value={e.link} onChange={(v) => set({ link: v })} placeholder="github.com/you/project" />
                   <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2023" />
                   <TextInput label="End" optional value={e.end} onChange={(v) => set({ end: v })} placeholder="2024" />
-                  <TextArea label="Description" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={3}
+                  <RichTextArea mode="bullets" label="Description" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={3}
                     help="Each line becomes a bullet point." placeholder="Built with React and Firebase; 2k monthly users" />
                 </div>
               )} />
@@ -353,11 +355,11 @@ export default function Editor() {
           <SectionCard {...common}>
             <ItemList items={data.custom} onChange={(v) => setData('custom', v)} create={emptyCustom}
               addLabel="Add a section"
-              summary={(c) => [c.title, c.content.split('\n')[0]]}
+              summary={(c) => [c.title, plainText(stripBullet(c.content.split('\n')[0]))]}
               render={(c, set) => (
                 <div className="grid2">
                   <TextInput full label="Section title" value={c.title} onChange={(v) => set({ title: v })} placeholder="Languages / Awards / Volunteering" />
-                  <TextArea label="Content" value={c.content} onChange={(v) => set({ content: v })} rows={3}
+                  <RichTextArea mode="auto" label="Content" value={c.content} onChange={(v) => set({ content: v })} rows={3}
                     help="A single line shows as text; multiple lines become bullet points." placeholder="English (fluent), Hindi (native)" />
                 </div>
               )} />
@@ -452,6 +454,7 @@ export default function Editor() {
               <button className="btn btn-primary btn-lg" onClick={exportPdf}>{Icon.download} Export PDF</button>
             </div>
           </div>
+          <FormatBar />
         </div>
 
         <div className="epreview">

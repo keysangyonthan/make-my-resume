@@ -1,0 +1,186 @@
+// Text boxes with formatting (bold, italic, underline, links, bullet lists) and the
+// floating formatting bar that appears at the bottom while one of them is being edited.
+import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import LinkExt from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { fromEditorJson, toEditorHtml } from '../lib/rich';
+
+// ---- which text box is being edited (shared with the formatting bar) ----
+let active = null; // { editor, mode }
+const subs = new Set();
+const emit = () => subs.forEach((f) => f());
+const setActive = (a) => { if (active?.editor !== a?.editor || active?.mode !== a?.mode) { active = a; emit(); } };
+const useActive = () => useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => active);
+
+// mode:
+//  'rich'    – paragraphs, and bullet lists with the list button (Summary)
+//  'bullets' – every line is a bullet (job / school / project descriptions)
+//  'auto'    – one line is text, several lines are bullets (custom sections)
+//  'plain'   – no lists (skills)
+export function RichTextArea({ label, value, onChange, placeholder, optional, help, full = true, rows = 4, mode = 'rich' }) {
+  const id = useId();
+  const lists = mode === 'rich';
+  const last = useRef(value || '');
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: false, codeBlock: false, blockquote: false, horizontalRule: false, code: false, strike: false,
+        orderedList: false, bulletList: lists ? {} : false, listItem: lists ? {} : false,
+      }),
+      Underline,
+      LinkExt.configure({ openOnClick: false, autolink: false, linkOnPaste: true, HTMLAttributes: { rel: 'noopener noreferrer' } }),
+      Placeholder.configure({ placeholder: placeholder || '' }),
+    ],
+    content: toEditorHtml(value, { lists }),
+    editorProps: { attributes: { id, class: 'rt-input', role: 'textbox', 'aria-multiline': 'true', ...(label ? { 'aria-label': label } : {}) } },
+    onUpdate: ({ editor: ed }) => {
+      const v = fromEditorJson(ed.getJSON());
+      last.current = v;
+      changeRef.current(v);
+    },
+    onFocus: ({ editor: ed }) => setActive({ editor: ed, mode }),
+  });
+
+  // Keep in step when the value changes from outside (e.g. "Clear example content").
+  useEffect(() => {
+    if (!editor || (value || '') === last.current) return;
+    last.current = value || '';
+    editor.commands.setContent(toEditorHtml(value, { lists }), false);
+  }, [value, editor, lists]);
+
+  useEffect(() => () => { if (active?.editor === editor) setActive(null); }, [editor]);
+
+  return (
+    <div className={`field ${full ? 'full' : ''}`}>
+      {label && <label htmlFor={id} onClick={() => editor?.commands.focus()}>{label}{optional && <span className="opt"> (optional)</span>}</label>}
+      <div className={`rt rt-${mode}`} style={{ '--rows': rows }}>
+        <EditorContent editor={editor} />
+      </div>
+      {help && <div className="help">{help}</div>}
+    </div>
+  );
+}
+
+const I = {
+  bold: <path d="M7 5h6a3.5 3.5 0 010 7H7zM7 12h7a3.5 3.5 0 010 7H7z" />,
+  italic: <path d="M19 4h-9M14 20H5M15 4L9 20" />,
+  underline: <path d="M7 4v7a5 5 0 0010 0V4M5 20h14" />,
+  list: <path d="M10 6h10M10 12h10M10 18h10M5 6h.01M5 12h.01M5 18h.01" />,
+  link: <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7" />,
+  clear: <path d="M4 7V5h12v2M10 5l-3 14M13 19h-5M15 14l5 5M20 14l-5 5" />,
+  undo: <path d="M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-3" />,
+  redo: <path d="M15 14l5-5-5-5M20 9H9a5 5 0 000 10h3" />,
+};
+const Svg = ({ d }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>;
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const key = (k) => (isMac ? `⌘${k}` : `Ctrl+${k}`);
+
+const LIST_OFF = {
+  bullets: 'Every line here is already a bullet point',
+  auto: 'Several lines here become bullet points automatically',
+  plain: 'Lists aren’t used here',
+};
+
+// The floating formatting bar. Put it once at the end of the scrolling form.
+export function FormatBar() {
+  const a = useActive();
+  const barRef = useRef(null);
+  const [, rerender] = useReducer((x) => x + 1, 0);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const editor = a?.editor;
+
+  // Hide the bar when focus leaves the text boxes (and the bar itself).
+  useEffect(() => {
+    const check = () => {
+      const el = document.activeElement;
+      if (el?.closest?.('.ProseMirror') || barRef.current?.contains(el)) return;
+      setActive(null);
+      setLinkOpen(false);
+    };
+    const onOut = () => setTimeout(check, 0);
+    document.addEventListener('focusout', onOut);
+    document.addEventListener('focusin', onOut);
+    return () => { document.removeEventListener('focusout', onOut); document.removeEventListener('focusin', onOut); };
+  }, []);
+
+  // Light up buttons as the cursor moves.
+  useEffect(() => {
+    if (!editor) return undefined;
+    editor.on('transaction', rerender);
+    return () => editor.off('transaction', rerender);
+  }, [editor]);
+
+  useEffect(() => { setLinkOpen(false); }, [editor]);
+
+  const on = (name) => !!editor?.isActive(name);
+  const run = (fn) => (e) => { e.preventDefault(); if (editor) fn(editor.chain().focus()).run(); };
+  const listOk = a?.mode === 'rich';
+
+  const openLink = (e) => {
+    e.preventDefault();
+    if (!editor) return;
+    setUrl(editor.getAttributes('link').href || '');
+    setLinkOpen(true);
+  };
+  const applyLink = (e) => {
+    e?.preventDefault();
+    if (!editor) return;
+    let href = url.trim();
+    if (!href) { editor.chain().focus().extendMarkRange('link').unsetLink().run(); setLinkOpen(false); return; }
+    if (!/^(https?:|mailto:|tel:)/i.test(href)) href = /@/.test(href) && !/\//.test(href) ? `mailto:${href}` : `https://${href}`;
+    const { empty } = editor.state.selection;
+    if (empty && !editor.isActive('link')) {
+      const text = url.trim();
+      editor.chain().focus().insertContent({ type: 'text', text, marks: [{ type: 'link', attrs: { href } }] }).run();
+    } else {
+      editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
+    }
+    setLinkOpen(false);
+  };
+
+  const Btn = ({ name, icon, title, onDown, disabled }) => (
+    <button type="button" className={`fbar-btn ${name && on(name) ? 'on' : ''} ${disabled ? 'off' : ''}`} title={title} aria-label={title}
+      aria-pressed={name ? on(name) : undefined} aria-disabled={disabled || undefined}
+      onMouseDown={(e) => { e.preventDefault(); if (!disabled) onDown(e); }}>
+      <Svg d={icon} />
+    </button>
+  );
+
+  return (
+    <div ref={barRef} className={`fbar ${editor ? 'show' : ''}`} role="toolbar" aria-label="Text formatting" aria-hidden={!editor}
+      onMouseDown={(e) => { if (e.target.tagName !== 'INPUT') e.preventDefault(); }}>
+      {linkOpen ? (
+        <form className="fbar-link" onSubmit={applyLink}>
+          <Svg d={I.link} />
+          <input autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a link, e.g. github.com/you"
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setLinkOpen(false); editor?.commands.focus(); } }} />
+          <button type="submit" className="fbar-apply">Apply</button>
+          {on('link') && <button type="button" className="fbar-text" onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().extendMarkRange('link').unsetLink().run(); setLinkOpen(false); }}>Remove</button>}
+          <button type="button" className="fbar-text" onMouseDown={(e) => { e.preventDefault(); setLinkOpen(false); editor?.commands.focus(); }}>Cancel</button>
+        </form>
+      ) : (
+        <>
+          <Btn name="bold" icon={I.bold} title={`Bold (${key('B')})`} onDown={run((c) => c.toggleBold())} />
+          <Btn name="italic" icon={I.italic} title={`Italic (${key('I')})`} onDown={run((c) => c.toggleItalic())} />
+          <Btn name="underline" icon={I.underline} title={`Underline (${key('U')})`} onDown={run((c) => c.toggleUnderline())} />
+          <span className="fbar-sep" />
+          <Btn name={listOk ? 'bulletList' : null} icon={I.list} title={listOk ? 'Bullet list' : LIST_OFF[a?.mode] || 'Bullet list'}
+            disabled={!listOk} onDown={run((c) => c.toggleBulletList())} />
+          <Btn name="link" icon={I.link} title="Add link" onDown={openLink} />
+          <Btn icon={I.clear} title="Clear formatting" onDown={run((c) => c.unsetAllMarks())} />
+          <span className="fbar-sep" />
+          <Btn icon={I.undo} title={`Undo (${key('Z')})`} disabled={!editor?.can().undo()} onDown={run((c) => c.undo())} />
+          <Btn icon={I.redo} title={`Redo (${key('⇧Z')})`} disabled={!editor?.can().redo()} onDown={run((c) => c.redo())} />
+        </>
+      )}
+    </div>
+  );
+}

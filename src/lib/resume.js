@@ -107,11 +107,11 @@ export function sampleResume() {
   return { ...r, title: 'Example resume', data: structuredClone(SAMPLE_DATA) };
 }
 
-// Split a textarea into clean lines; tolerant of "-", "•", "*" prefixes.
+// Split a text box into clean lines; tolerant of "-", "•", "* " prefixes (but not **bold**).
 export const lines = (text) =>
   (text || '')
     .split('\n')
-    .map((l) => l.replace(/^\s*[-•*]\s*/, '').trim())
+    .map((l) => l.replace(/^\s*(?:[-•]\s*|\*\s+)/, '').trim())
     .filter(Boolean);
 
 export const dateRange = (start, end, current) => {

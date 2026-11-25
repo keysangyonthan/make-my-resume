@@ -3,6 +3,17 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.22',
+    date: '2026-11-25',
+    title: 'Formatting bar',
+    tag: 'New',
+    items: [
+      'Make words bold, italic or underlined, add links and bullet lists. A small formatting bar appears at the bottom whenever you’re typing in a description, summary, skills or custom section.',
+      'Shortcuts work too: ⌘B / Ctrl+B for bold, ⌘I / Ctrl+I for italic, ⌘U / Ctrl+U for underline.',
+      'Formatting shows up in the preview and in your exported PDF.',
+    ],
+  },
+  {
     version: '1.21',
     date: '2026-11-22',
     title: 'Import from LinkedIn',
