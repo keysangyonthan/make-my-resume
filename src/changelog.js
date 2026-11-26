@@ -3,6 +3,16 @@
 // tag: 'New' | 'Improved' | 'Fixed'
 export const CHANGELOG = [
   {
+    version: '1.31',
+    date: '2026-11-26',
+    title: 'Month & year picker for dates',
+    tag: 'Improved',
+    items: [
+      'Start and end dates now open a small calendar: pick the year, then the month. Tap the year to jump across years quickly.',
+      'Want just the year? Choose “Just 2021”. You can still type anything you like, such as “Summer 2021”.',
+    ],
+  },
+  {
     version: '1.30',
     date: '2026-11-26',
     title: 'Logos template',

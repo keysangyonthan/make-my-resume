@@ -13,6 +13,9 @@ import { ItemList, SectionCard, TextInput } from '../components/FormParts';
 import { FormatBar, RichTextArea } from '../components/RichText';
 import LinksField from '../components/LinksField';
 import LogoPicker from '../components/LogoPicker';
+import DateField from '../components/DateField';
+
+const yearIn = (v) => Number((v || '').match(/\b(19|20)\d{2}\b/)?.[0]) || undefined;
 import { plainText, stripBullet, upgradeResume } from '../lib/rich';
 import { BrandMark, Icon, Spinner, timeAgo } from '../components/ui';
 import { useMinuteTick } from '../lib/version';
@@ -288,10 +291,10 @@ export default function Editor() {
                 <div className="grid2">
                   <TextInput label="Job title" value={e.role} onChange={(v) => set({ role: v })} placeholder="Product Designer" />
                   <TextInput label="Company" value={e.company} onChange={(v) => set({ company: v })} placeholder="Acme Inc." />
-                  <TextInput label="Start date" value={e.start} onChange={(v) => set({ start: v })} placeholder="Jan 2022" />
+                  <DateField label="Start date" value={e.start} onChange={(v) => set({ start: v })} placeholder="Jan 2022" />
                   <div>
-                    {!e.current && <TextInput label="End date" value={e.end} onChange={(v) => set({ end: v })} placeholder="Dec 2023" />}
-                    {e.current && <TextInput label="End date" value="Present" onChange={() => {}} />}
+                    {!e.current && <DateField label="End date" value={e.end} onChange={(v) => set({ end: v })} placeholder="Dec 2023" startYear={yearIn(e.start)} />}
+                    {e.current && <DateField label="End date" value="Present" onChange={() => {}} disabled />}
                     <label className="check"><input type="checkbox" checked={!!e.current} onChange={(ev) => set({ current: ev.target.checked })} /> I currently work here</label>
                   </div>
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="Bengaluru / Remote" />
@@ -313,8 +316,8 @@ export default function Editor() {
                 <div className="grid2">
                   <TextInput label="Degree / course" value={e.degree} onChange={(v) => set({ degree: v })} placeholder="B.Tech, Computer Science" />
                   <TextInput label="School / university" value={e.school} onChange={(v) => set({ school: v })} placeholder="IIT Delhi" />
-                  <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2016" />
-                  <TextInput label="End" value={e.end} onChange={(v) => set({ end: v })} placeholder="2020" />
+                  <DateField label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2016" />
+                  <DateField label="End" value={e.end} onChange={(v) => set({ end: v })} placeholder="2020" startYear={yearIn(e.start)} />
                   <TextInput full label="Location" optional value={e.location} onChange={(v) => set({ location: v })} placeholder="New Delhi" />
                   {withLogos && <LogoPicker label="School logo" value={e.logo} name={e.school} onChange={(v) => set({ logo: v })} />}
                   <RichTextArea label="Details" optional value={e.details} onChange={(v) => set({ details: v })} rows={3}
@@ -348,8 +351,8 @@ export default function Editor() {
                 <div className="grid2">
                   <TextInput label="Project name" value={e.name} onChange={(v) => set({ name: v })} placeholder="Portfolio website" />
                   <TextInput label="Link" optional value={e.link} onChange={(v) => set({ link: v })} placeholder="github.com/you/project" />
-                  <TextInput label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2023" />
-                  <TextInput label="End" optional value={e.end} onChange={(v) => set({ end: v })} placeholder="2024" />
+                  <DateField label="Start" optional value={e.start} onChange={(v) => set({ start: v })} placeholder="2023" />
+                  <DateField label="End" optional value={e.end} onChange={(v) => set({ end: v })} placeholder="2024" startYear={yearIn(e.start)} />
                   <RichTextArea label="Description" value={e.bullets} onChange={(v) => set({ bullets: v })} rows={3}
                     placeholder="Built with React and Firebase; 2k monthly users" />
                 </div>
